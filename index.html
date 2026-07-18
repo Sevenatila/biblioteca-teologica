@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+  window.pixelId = "6a51a682e97feb78a974deca";
+  var a = document.createElement("script");
+  a.setAttribute("async", "");
+  a.setAttribute("defer", "");
+  a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+  document.head.appendChild(a);
+</script>
+<script
+  src="https://cdn.utmify.com.br/scripts/utms/latest.js"
+  data-utmify-prevent-xcod-sck
+  data-utmify-prevent-subids
+  async
+  defer
+></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#3b1220">
+<title>Biblioteca Teológica Digital | Mais de 8.000 Livros Cristãos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --vinho-escuro:#2b0e17;
+    --vinho:#4a1523;
+    --vinho-claro:#6b1e2f;
+    --dourado:#c9a227;
+    --dourado-claro:#e8c765;
+    --pergaminho:#f7f0dd;
+    --pergaminho-escuro:#efe3c4;
+    --tinta:#241a12;
+    --tinta-suave:#4a3d2d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'EB Garamond',Georgia,serif;
+    color:var(--tinta);
+    background:var(--pergaminho);
+    line-height:1.65;
+    font-size:18px;
+  }
+  a{text-decoration:none;color:inherit;}
+  img{max-width:100%;display:block;}
+  ul{list-style:none;}
+  h1,h2,h3,h4{font-family:'Playfair Display',Georgia,serif;}
+  .container{max-width:1180px;margin:0 auto;padding:0 24px;}
+  .eyebrow{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--vinho-claro);font-weight:600;}
+  .divider{width:70px;height:3px;background:var(--dourado);margin:14px auto 0;border-radius:2px;}
+  .divider.left{margin:14px 0 0;}
+  .ornament{text-align:center;color:var(--dourado);font-size:1.4rem;margin:6px 0 0;letter-spacing:8px;}
+
+  /* ===== HEADER ===== */
+  header{background:var(--vinho-escuro);position:sticky;top:0;z-index:200;border-bottom:2px solid var(--dourado);}
+  .nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0;}
+  .logo{font-family:'Cinzel',serif;color:var(--pergaminho);font-size:1.25rem;font-weight:700;display:flex;align-items:center;gap:10px;letter-spacing:.5px;}
+  .logo .mark{color:var(--dourado);font-size:1.5rem;}
+  .nav-links{display:flex;gap:30px;align-items:center;}
+  .nav-links a{color:var(--pergaminho-escuro);font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;transition:.2s;}
+  .nav-links a:hover{color:var(--dourado);}
+  .nav-cta{background:var(--dourado);color:var(--vinho-escuro)!important;padding:11px 24px;border-radius:2px;font-weight:700;}
+  .nav-burger{display:none;background:none;border:none;color:var(--dourado);font-size:1.6rem;cursor:pointer;}
+  .nav-toggle{display:none;}
+
+  /* ===== HERO ===== */
+  .hero{
+    background:
+      linear-gradient(100deg,rgba(30,10,16,.88) 0%,rgba(43,14,23,.72) 28%,rgba(43,14,23,.38) 52%,rgba(43,14,23,.12) 75%),
+      linear-gradient(0deg,rgba(20,7,11,.55),rgba(20,7,11,0) 35%),
+      url('hero-biblioteca.png');
+    background-size:cover;
+    background-position:center 38%;
+    background-repeat:no-repeat;
+    color:var(--pergaminho);
+    padding:90px 0 110px;
+    min-height:clamp(560px,74vh,760px);
+    display:flex;
+    align-items:center;
+    position:relative;
+    border-bottom:6px double var(--dourado);
+  }
+  .hero>.container{width:100%;}
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:50px;align-items:center;}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,162,39,.15);border:1px solid var(--dourado);color:var(--dourado-claro);font-family:'Cinzel',serif;font-weight:600;font-size:.7rem;letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px;border-radius:30px;margin-bottom:22px;}
+  .hero h1{font-size:clamp(2rem,4vw,2.9rem);font-weight:800;margin-bottom:18px;line-height:1.2;color:var(--pergaminho);}
+  .hero h1 em{font-style:italic;color:var(--dourado-claro);}
+  .hero p.lead{font-size:1.15rem;opacity:.9;margin-bottom:28px;max-width:520px;font-style:italic;color:var(--pergaminho-escuro);}
+  .hero-stats{display:flex;gap:32px;flex-wrap:wrap;border-top:1px solid rgba(201,162,39,.3);padding-top:22px;}
+  .hero-stats div strong{display:block;font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--dourado-claro);font-weight:700;}
+  .hero-stats div span{font-size:.78rem;letter-spacing:.5px;opacity:.85;font-family:'Cinzel',serif;text-transform:uppercase;}
+
+  /* PRICE BOX styled like an illuminated seal card */
+  .price-box{
+    background:var(--pergaminho);
+    border-radius:6px;
+    padding:34px 30px;
+    box-shadow:0 25px 60px rgba(0,0,0,.45);
+    border:1px solid var(--dourado);
+    position:relative;
+  }
+  .price-box::before{content:"✦";position:absolute;top:-16px;left:50%;transform:translateX(-50%);background:var(--dourado);color:var(--vinho-escuro);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 10px rgba(0,0,0,.3);}
+  .price-box h3{color:var(--vinho);font-size:1.05rem;text-align:center;margin-bottom:4px;font-weight:700;}
+  .price-sub{text-align:center;color:var(--tinta-suave);font-size:.82rem;font-style:italic;margin-bottom:16px;}
+  .price-row{text-align:center;margin-bottom:6px;}
+  .price-old{color:#9a8a70;text-decoration:line-through;font-size:1.05rem;}
+  .price-new{font-family:'Playfair Display',serif;font-size:3.1rem;color:var(--vinho);font-weight:800;line-height:1;}
+  .price-new small{font-size:1rem;font-weight:500;color:var(--tinta-suave);}
+  .price-tag{display:block;text-align:center;background:var(--vinho);color:var(--dourado-claro);font-family:'Cinzel',serif;font-size:.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-radius:20px;margin:12px auto 20px;width:fit-content;}
+  .price-list{margin:18px 0 22px;font-size:.95rem;}
+  .price-list li{padding:6px 0;display:flex;gap:10px;align-items:flex-start;color:var(--tinta);}
+  .price-list li::before{content:"❧";color:var(--vinho);font-weight:700;}
+  .btn-buy{display:block;text-align:center;background:linear-gradient(90deg,var(--dourado),var(--dourado-claro));color:var(--vinho-escuro);font-family:'Cinzel',serif;font-weight:700;font-size:1rem;letter-spacing:1px;text-transform:uppercase;padding:17px;border-radius:3px;box-shadow:0 10px 25px rgba(201,162,39,.35);transition:.2s;}
+  .btn-buy:hover{transform:translateY(-2px);}
+  .price-note{text-align:center;font-size:.78rem;color:var(--tinta-suave);margin-top:12px;font-style:italic;}
+
+  /* ===== SECTIONS ===== */
+  section{padding:70px 0;}
+  .section-title{text-align:center;margin-bottom:46px;}
+  .section-title h2{font-size:clamp(1.6rem,3.2vw,2.2rem);color:var(--vinho-escuro);margin-top:10px;font-weight:800;}
+  .section-title p{color:var(--tinta-suave);max-width:600px;margin:14px auto 0;font-style:italic;}
+
+  /* STATS BAR */
+  .stats-bar{background:var(--vinho-escuro);border-top:2px solid var(--dourado);border-bottom:2px solid var(--dourado);padding:30px 0;}
+  .stats-bar .container{display:flex;justify-content:space-around;flex-wrap:wrap;gap:24px;text-align:center;}
+  .stats-bar strong{display:block;font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--dourado-claro);font-weight:700;}
+  .stats-bar span{font-size:.75rem;color:var(--pergaminho-escuro);font-family:'Cinzel',serif;letter-spacing:1px;text-transform:uppercase;}
+
+  /* COLLECTIONS GRID - book spine style */
+  .coll-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;}
+  .coll-card{background:#fff;border:1px solid var(--pergaminho-escuro);border-left:5px solid var(--vinho);border-radius:4px;padding:22px;display:flex;gap:16px;align-items:flex-start;transition:.25s;box-shadow:0 2px 8px rgba(74,21,35,.06);}
+  .coll-card:hover{border-left-color:var(--dourado);box-shadow:0 12px 28px rgba(74,21,35,.14);transform:translateY(-4px);}
+  .coll-icon{color:var(--vinho);font-size:1.5rem;flex-shrink:0;}
+  .coll-card h4{font-size:1rem;color:var(--vinho-escuro);margin-bottom:5px;font-weight:700;}
+  .coll-card p{font-size:.85rem;color:var(--tinta-suave);}
+
+  /* AUTHORS */
+  .authors{background:linear-gradient(160deg,var(--vinho-escuro),var(--vinho));color:var(--pergaminho);}
+  .authors .section-title h2{color:var(--pergaminho);}
+  .authors .section-title p{color:var(--pergaminho-escuro);}
+  .author-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;}
+  .author-pill{background:rgba(247,240,221,.06);border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:18px 14px;text-align:center;font-family:'Playfair Display',serif;font-weight:600;font-size:.95rem;}
+  .author-pill span{display:block;font-family:'EB Garamond',serif;font-size:.75rem;font-style:italic;font-weight:400;color:var(--dourado-claro);margin-top:5px;}
+
+  /* HOW IT WORKS */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;}
+  .step{text-align:center;padding:12px;}
+  .step-num{width:56px;height:56px;border-radius:50%;border:2px solid var(--dourado);color:var(--vinho);font-family:'Playfair Display',serif;font-weight:700;font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+  .step h4{color:var(--vinho-escuro);margin-bottom:8px;font-size:1.1rem;}
+  .step p{font-size:.92rem;color:var(--tinta-suave);}
+
+  /* TESTIMONIALS */
+  .testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;}
+  .testi-card{background:#fff;border-radius:6px;padding:28px;border-top:3px solid var(--dourado);box-shadow:0 4px 16px rgba(74,21,35,.08);}
+  .testi-card .quote{font-family:'Playfair Display',serif;font-size:2rem;color:var(--dourado);line-height:0;display:block;margin-bottom:6px;}
+  .testi-card p{font-size:.96rem;color:var(--tinta);margin-bottom:16px;font-style:italic;}
+  .testi-name{font-weight:700;color:var(--vinho-escuro);font-size:.9rem;font-family:'Playfair Display',serif;}
+  .testi-role{font-size:.78rem;color:var(--tinta-suave);}
+
+  /* FINAL CTA */
+  .final-cta{background:linear-gradient(160deg,var(--vinho),var(--vinho-escuro));color:var(--pergaminho);text-align:center;border-top:6px double var(--dourado);}
+  .final-cta h2{font-size:clamp(1.6rem,3.5vw,2.2rem);margin-bottom:14px;font-weight:800;}
+  .final-cta p{opacity:.9;margin-bottom:28px;font-style:italic;}
+  .final-price{font-family:'Playfair Display',serif;font-size:clamp(2rem,5vw,2.7rem);font-weight:800;color:var(--dourado-claro);}
+  .final-price small{font-size:1.05rem;color:var(--pergaminho-escuro);font-family:'EB Garamond',serif;font-style:italic;}
+  .btn-buy-lg{display:inline-block;background:linear-gradient(90deg,var(--dourado),var(--dourado-claro));color:var(--vinho-escuro);font-family:'Cinzel',serif;font-weight:700;font-size:1.05rem;letter-spacing:1px;text-transform:uppercase;padding:19px 46px;border-radius:3px;margin-top:26px;box-shadow:0 12px 30px rgba(201,162,39,.35);}
+
+  /* FAQ */
+  .faq-item{border-bottom:1px solid var(--pergaminho-escuro);padding:20px 0;}
+  .faq-item h4{color:var(--vinho-escuro);font-size:1.05rem;margin-bottom:6px;font-weight:700;}
+  .faq-item p{color:var(--tinta-suave);font-size:.94rem;}
+
+  footer{background:#1c0a11;color:#c9b8a8;padding:40px 0 90px;font-size:.85rem;border-top:3px solid var(--dourado);}
+  .footer-flex{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center;}
+  .footer-flex .logo{color:var(--pergaminho);}
+  .disclaimer{max-width:900px;margin:20px auto 0;text-align:center;font-size:.75rem;color:#8a7563;font-style:italic;}
+
+  /* MOBILE STICKY BUY BAR */
+  .sticky-bar{display:none;}
+
+  /* ===== RESPONSIVE ===== */
+  @media(max-width:960px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero{padding:44px 0 60px;}
+    .steps{grid-template-columns:1fr;gap:36px;}
+  }
+
+  @media(max-width:760px){
+    body{font-size:16.5px;}
+    .hero{
+      background-image:
+        linear-gradient(180deg,rgba(30,10,16,.55) 0%,rgba(43,14,23,.55) 45%,rgba(43,14,23,.92) 100%),
+        url('celular.png');
+      background-position:center top;
+    }
+    .nav-burger{display:block;}
+    .nav-links{
+      position:absolute;top:100%;left:0;right:0;
+      background:var(--vinho-escuro);
+      flex-direction:column;
+      align-items:flex-start;
+      gap:0;
+      max-height:0;
+      overflow:hidden;
+      transition:max-height .3s ease;
+      border-bottom:2px solid var(--dourado);
+    }
+    .nav-toggle:checked ~ .nav-links{max-height:340px;}
+    .nav-links a{width:100%;padding:16px 24px;border-top:1px solid rgba(201,162,39,.15);}
+    .nav-links .nav-cta{margin:14px 24px;width:calc(100% - 48px);text-align:center;padding:13px;}
+    section{padding:50px 0;}
+    .hero{padding-bottom:110px;min-height:auto;}
+    .hero-stats{gap:22px;}
+    .hero-stats div strong{font-size:1.4rem;}
+    .price-box{padding:28px 22px;}
+    .coll-grid{grid-template-columns:1fr 1fr;gap:14px;}
+    .coll-card{padding:16px;flex-direction:column;gap:8px;}
+    .stats-bar .container{gap:18px 26px;}
+    .stats-bar strong{font-size:1.4rem;}
+    .author-grid{grid-template-columns:1fr 1fr;}
+    .footer-flex{flex-direction:column;align-items:flex-start;}
+
+    /* Sticky mobile buy bar */
+    .sticky-bar{
+      display:flex;position:fixed;bottom:0;left:0;right:0;z-index:300;
+      background:var(--vinho-escuro);border-top:2px solid var(--dourado);
+      padding:10px 16px;align-items:center;justify-content:space-between;gap:12px;
+      box-shadow:0 -6px 18px rgba(0,0,0,.35);
+      padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    }
+    .sticky-bar .sb-price{color:var(--pergaminho);}
+    .sticky-bar .sb-price strong{display:block;color:var(--dourado-claro);font-family:'Playfair Display',serif;font-size:1.25rem;}
+    .sticky-bar .sb-price span{font-size:.68rem;text-decoration:line-through;color:#a99;opacity:.8;}
+    .sticky-bar a{background:linear-gradient(90deg,var(--dourado),var(--dourado-claro));color:var(--vinho-escuro);font-family:'Cinzel',serif;font-weight:700;font-size:.82rem;letter-spacing:.5px;text-transform:uppercase;padding:13px 20px;border-radius:3px;white-space:nowrap;}
+  }
+
+  @media(max-width:480px){
+    .coll-grid{grid-template-columns:1fr;}
+    .author-grid{grid-template-columns:1fr;}
+    .hero-stats{justify-content:space-between;}
+    .price-new{font-size:2.5rem;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container nav">
+    <div class="logo"><span class="mark">✚</span> Biblioteca Teológica</div>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <ul class="nav-links" style="display:flex;list-style:none;">
+      <li><a href="#colecoes">Coleções</a></li>
+      <li><a href="#autores">Autores</a></li>
+      <li><a href="#depoimentos">Depoimentos</a></li>
+      <li><a href="#faq">Dúvidas</a></li>
+      <li><a href="https://checkout.protocolotsr.shop/VCCL1O8SD6FH" target="_blank" rel="noopener" class="nav-cta">Adquirir Acesso</a></li>
+    </ul>
+    <label for="nav-toggle" class="nav-burger">☰</label>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="badge">✦ Oferta por tempo limitado</span>
+      <h1>Um acervo de <em>mais de 8.000 obras</em> para o estudo das Escrituras</h1>
+      <p class="lead">Teologia sistemática, comentários bíblicos, apologética, sermões históricos e coleções completas de autores consagrados — reunidos em uma única biblioteca digital.</p>
+      <div class="hero-stats">
+        <div><strong>8.000+</strong><span>Livros e e-books</span></div>
+        <div><strong>50+</strong><span>Coleções temáticas</span></div>
+        <div><strong>Vitalício</strong><span>Acesso ao acervo</span></div>
+      </div>
+    </div>
+    <div class="price-box" id="comprar">
+      <h3>Acesso Completo ao Acervo</h3>
+      <p class="price-sub">Pagamento único · sem mensalidades</p>
+      <div class="price-row">
+        <div class="price-old">De R$ 29,90</div>
+        <div class="price-new">R$ 14,90 <small>à vista</small></div>
+      </div>
+      <span class="price-tag">Economia de 50% hoje</span>
+      <ul class="price-list">
+        <li>Mais de 8.000 livros em PDF/EPUB</li>
+        <li>Coleções completas por autor e tema</li>
+        <li>Acesso liberado imediatamente</li>
+        <li>Atualizações e novos títulos inclusos</li>
+      </ul>
+      <a href="https://checkout.protocolotsr.shop/VCCL1O8SD6FH" target="_blank" rel="noopener" class="btn-buy">Quero Meu Acesso Agora</a>
+      <p class="price-note">Acesso vitalício · sem cobranças recorrentes</p>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="container">
+    <div><strong>8.000+</strong><span>Títulos disponíveis</span></div>
+    <div><strong>50+</strong><span>Coleções organizadas</span></div>
+    <div><strong>30+</strong><span>Autores de referência</span></div>
+    <div><strong>R$ 14,90</strong><span>Acesso vitalício</span></div>
+  </div>
+</div>
+
+<section id="colecoes">
+  <div class="container">
+    <div class="section-title">
+      <span class="eyebrow">Acervo Real</span>
+      <h2>Coleções que você recebe no acesso</h2>
+      <div class="ornament">❦</div>
+      <p>Uma amostra do que está organizado dentro da biblioteca — por autor e por tema.</p>
+    </div>
+    <div class="coll-grid">
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Coleção Dane Ortlund</h4><p>Obras sobre a graça e o coração de Cristo.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Coleção James D. G. Dunn</h4><p>Estudos aprofundados do Novo Testamento.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Coleção Samuel Waldron</h4><p>Teologia reformada e exposição doutrinária.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Coleção Stanley E. Porter</h4><p>Estudos linguísticos e exegéticos do grego.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Suma Teológica — Tomás de Aquino</h4><p>Obra clássica completa da teologia sistemática.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Sermões de R. M. M'Cheyne</h4><p>Pregações históricas de um pregador escocês.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>CETADEB — Curso Básico</h4><p>Material didático para formação teológica.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Angelologia & Demonologia</h4><p>Estudos sobre seres espirituais na Bíblia.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Apócrifos da Bíblia</h4><p>Coleção completa dos livros apócrifos anotados.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Batismo Bíblico</h4><p>Estudos doutrinários sobre o batismo cristão.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Mulheres da Bíblia</h4><p>Coleção Dee Brestin sobre personagens femininas.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Pentateuco & Primeiros Passos</h4><p>Introdução ao estudo bíblico para iniciantes.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Sacramentos Católicos</h4><p>Teologia sacramental católica.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Santuário e Profecias — Adventista</h4><p>Estudos escatológicos e proféticos.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>Gramática e Léxicos</h4><p>Ferramentas para hebraico e grego bíblico.</p></div></div>
+      <div class="coll-card"><div class="coll-icon">✠</div><div><h4>+ 35 coleções</h4><p>Outras categorias esperando por você no acervo.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="authors" id="autores">
+  <div class="container">
+    <div class="section-title">
+      <span class="eyebrow" style="color:var(--dourado-claro);">Referências</span>
+      <h2>Autores e teólogos presentes no acervo</h2>
+      <div class="ornament">❦</div>
+      <p>Obras de nomes que marcaram a história da teologia cristã.</p>
+    </div>
+    <div class="author-grid">
+      <div class="author-pill">R. C. Sproul <span>Teologia Sistemática</span></div>
+      <div class="author-pill">John Piper <span>Vida Cristã</span></div>
+      <div class="author-pill">John MacArthur <span>Comentários Bíblicos</span></div>
+      <div class="author-pill">Charles Spurgeon <span>Sermões</span></div>
+      <div class="author-pill">A. W. Tozer <span>Espiritualidade</span></div>
+      <div class="author-pill">Jonathan Edwards <span>Puritanismo</span></div>
+      <div class="author-pill">C. S. Lewis <span>Apologética</span></div>
+      <div class="author-pill">Martyn Lloyd-Jones <span>Expositor</span></div>
+      <div class="author-pill">Wayne Grudem <span>Teologia Sistemática</span></div>
+      <div class="author-pill">D. A. Carson <span>Novo Testamento</span></div>
+      <div class="author-pill">Tomás de Aquino <span>Filosofia Cristã</span></div>
+      <div class="author-pill">Dane Ortlund <span>Graça e Coração de Cristo</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-title">
+      <span class="eyebrow">Simples Assim</span>
+      <h2>Como funciona o acesso</h2>
+      <div class="ornament">❦</div>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-num">I</div><h4>Faça sua reserva</h4><p>Clique no botão e garanta o acesso por R$ 14,90.</p></div>
+      <div class="step"><div class="step-num">II</div><h4>Confirmação instantânea</h4><p>Receba o link de acesso ao acervo completo.</p></div>
+      <div class="step"><div class="step-num">III</div><h4>Baixe seus livros</h4><p>Acesse quando e onde quiser, sem mensalidades.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--pergaminho-escuro);" id="depoimentos">
+  <div class="container">
+    <div class="section-title">
+      <span class="eyebrow">Quem já garantiu</span>
+      <h2>O que dizem sobre a biblioteca</h2>
+      <div class="ornament">❦</div>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <span class="quote">"</span>
+        <p>Encontrei coleções que jamais imaginei ter acesso, tudo organizado por autor. Vale muito o investimento.</p>
+        <div class="testi-name">M. Ferreira</div>
+        <div class="testi-role">Estudante de Teologia</div>
+      </div>
+      <div class="testi-card">
+        <span class="quote">"</span>
+        <p>Uso o acervo para preparar estudos e sermões. A quantidade de material é impressionante.</p>
+        <div class="testi-name">Pr. J. Almeida</div>
+        <div class="testi-role">Pastor</div>
+      </div>
+      <div class="testi-card">
+        <span class="quote">"</span>
+        <p>Preço acessível para um acervo gigantesco. Recomendo para quem ama estudar as Escrituras.</p>
+        <div class="testi-name">C. Souza</div>
+        <div class="testi-role">Líder de Grupo Pequeno</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <div class="section-title">
+      <span class="eyebrow">Dúvidas</span>
+      <h2>Perguntas frequentes</h2>
+      <div class="ornament">❦</div>
+    </div>
+    <div class="faq-item"><h4>Como recebo o acesso após a compra?</h4><p>Assim que a compra é confirmada, você recebe o link de acesso ao acervo completo.</p></div>
+    <div class="faq-item"><h4>O acesso é vitalício?</h4><p>Sim, após a compra o acesso ao acervo é permanente, incluindo atualizações futuras.</p></div>
+    <div class="faq-item"><h4>Em quais formatos estão os livros?</h4><p>A maior parte do acervo está em PDF e EPUB, compatível com celular, tablet e computador.</p></div>
+    <div class="faq-item"><h4>Existe algum tipo de mensalidade?</h4><p>Não. O pagamento de R$ 14,90 é único, sem cobranças recorrentes.</p></div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="container">
+    <h2>Garanta agora seu acesso à maior biblioteca teológica digital</h2>
+    <p>Mais de 8.000 livros esperando por você — por menos do que um lanche.</p>
+    <div class="final-price">R$ 14,90 <small>/ acesso vitalício</small></div>
+    <br>
+    <a href="https://checkout.protocolotsr.shop/VCCL1O8SD6FH" target="_blank" rel="noopener" class="btn-buy-lg">Quero Meu Acesso Agora</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-flex">
+      <div class="logo">✚ Biblioteca Teológica</div>
+      <div>Contato: contato@bibliotecateologica.com.br</div>
+    </div>
+    <p class="disclaimer">As coleções listadas fazem parte do acervo digital comercializado. Os direitos autorais de cada obra pertencem aos seus respectivos autores e editoras. Material destinado ao estudo pessoal e formação teológica.</p>
+  </div>
+</footer>
+
+<div class="sticky-bar">
+  <div class="sb-price"><span>De R$ 29,90</span><strong>R$ 14,90</strong></div>
+  <a href="https://checkout.protocolotsr.shop/VCCL1O8SD6FH" target="_blank" rel="noopener">Adquirir Acesso</a>
+</div>
+
+</body>
+</html>
