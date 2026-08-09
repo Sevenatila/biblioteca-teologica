@@ -305,6 +305,10 @@
   // Chamadas SEMPRE opcionais: o Quiz usa `window.BT && BT.x()`, então se este
   // arquivo não carregar (bloqueador, rede ruim) o quiz não nota diferença.
   window.BT = {
+    // O id desta visita. O quiz anexa ele na URL do checkout pra que o webhook
+    // do gateway consiga devolver a venda pra ESTA sessão — é o que fecha o
+    // funil até a compra em vez de parar em "foi pro checkout".
+    sid: sid,
     // resposta a uma pergunta: n = 1..10, acertou = boolean, tag = tema
     resposta: function (n, acertou, tag) {
       try {

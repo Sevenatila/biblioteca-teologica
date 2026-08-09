@@ -197,7 +197,9 @@ module.exports = async function handler(req, res) {
   if (Math.random() < 0.02) {
     db.query(`DELETE FROM bt_events WHERE ts < NOW() - INTERVAL '30 days'`).catch(() => {});
     db.query(`DELETE FROM bt_clicks WHERE ts < NOW() - INTERVAL '30 days'`).catch(() => {});
-    db.query(`DELETE FROM bt_sessions WHERE first_ts < NOW() - INTERVAL '90 days'`).catch(() => {});
+    // Sessão com compra nunca é apagada: ela é o vínculo entre a venda e a
+    // visita que a gerou, e a tabela de pedidos não tem prazo de validade.
+    db.query(`DELETE FROM bt_sessions WHERE first_ts < NOW() - INTERVAL '90 days' AND NOT purchased`).catch(() => {});
   }
 
   return res.status(200).json({ ok: true });

@@ -14,8 +14,10 @@ api/
   admin-funnel.js      Funil
   admin-heatmap.js     Mapa de Calor
   admin-quiz.js        Perguntas
+  admin-orders.js      Vendas
   admin-sessions.js    Sessões e jornada individual
   admin-events.js      Log cru
+  webhook-vega.js      ingestão das vendas (vem do checkout, não do navegador)
   _db.js _cors.js _ratelimit.js _auth.js
 db/schema.sql          schema (o _db.js também cria sozinho)
 ```
@@ -24,7 +26,8 @@ db/schema.sql          schema (o _db.js também cria sozinho)
 
 1. Commitar e dar push — a Vercel faz o resto.
 2. Em Settings → Environment Variables, preencher **duas** variáveis:
-   `POSTGRES_URL` e `PAINEL_SENHA` (ver `.env.example`).
+   `POSTGRES_URL` e `PAINEL_SENHA` (ver `.env.example`). Mais `VEGA_WEBHOOK_TOKEN`
+   se quiser a tela de Vendas.
 3. Deploy. As tabelas nascem sozinhas na primeira requisição — não precisa
    rodar migration.
 
@@ -35,16 +38,48 @@ O login é só senha, sem usuário. O segredo do JWT é derivado dela quando
 `JWT_SECRET` não está definida — é o que permite subir com duas variáveis em
 vez de quatro. Trocar a senha invalida as sessões abertas, de brinde.
 
-## As seis telas
+## As sete telas
 
 | Tela | Responde |
 |---|---|
-| **Visão Geral** | Quantos abriram, quantos terminaram, quantos viram a oferta, quantos foram pro checkout. Corte por dia, aparelho e origem. |
+| **Visão Geral** | Quantos abriram, quantos terminaram, quantos viram a oferta, quantos foram pro checkout, quantos compraram. Corte por dia, aparelho e origem. |
 | **Funil** | Abriu → 1ª → 5ª → 10ª → contato → resultado → preço → botão → checkout. Marca em vermelho a maior queda. |
 | **Mapa de Calor** | A tela de resultado de verdade num iframe, com as manchas de clique por cima. Mais a curva de rolagem, os cliques mortos e o ranking de elementos. |
 | **Perguntas** | Que mito mais pega gente, onde largam o quiz, que nota o público tira e se nota baixa converte mais. |
+| **Vendas** | Quem comprou (nome, contato, valor, nota que tirou), quem foi ao checkout e não comprou, receita por dia e por origem. |
 | **Sessões** | Cada visita, filtrável por comportamento. Clicando, abre a linha do tempo evento a evento. |
 | **Eventos** | Log cru. É onde se confere se o rastreio está chegando. |
+
+## Ligar o checkout (tela Vendas)
+
+1. Gere um segredo:
+   `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`
+2. Ponha em `VEGA_WEBHOOK_TOKEN` nas Environment Variables da Vercel e faça
+   redeploy.
+3. No checkout, em **Dev → Webhooks**, cadastre:
+   `https://SEU-DOMINIO/api/webhook-vega?token=O_MESMO_VALOR`
+   marcando os eventos de pedido **pago**, **pendente**, **recusado** e
+   **estorno**. A URL pronta, já com o token, fica no rodapé da tela Vendas.
+
+Sem o token configurado o endpoint responde 503 e recusa tudo — de propósito:
+um webhook de venda aberto é um convite pra encher seu painel de venda falsa.
+
+**Como a venda cola na visita.** O quiz anexa o id da sessão no link do
+checkout em três nomes (`bt_sid`, `sck`, `src`), porque cada gateway devolve
+por um. O `api/webhook-vega.js` procura por nome e, se não achar, **por
+formato** — o id sempre começa com `bt` seguido de base36, um padrão que não
+colide com mais nada no payload. Se ainda assim não vier, a venda entra na
+receita normalmente, só fica sem jornada; o painel avisa quantas estão assim.
+
+**Por que o parser é tolerante.** Nenhum campo do payload é obrigatório e cada
+um é procurado por vários nomes conhecidos (`amount`, `total`, `valor`,
+`total_value`…). O payload cru vai inteiro pra coluna `raw`, então mudança de
+formato do gateway não perde dado — dá pra reprocessar. Valor é normalizado
+pra **centavos** na entrada; o painel é o único lugar que converte pra real.
+
+Estorno e chargeback saem da receita e desmarcam a compra na sessão. O
+`paid_at`, não: ele guarda a primeira aprovação, porque "foi pago um dia" é
+fato histórico.
 
 ## Por que o mapa de calor é só da última página
 
@@ -82,10 +117,13 @@ registramos que a pessoa preencheu, nunca o que preencheu.
 
 ## O que o painel não vê
 
-A venda. O checkout é externo (`checkout.protocolotsr.shop`), então o último
-passo que este painel enxerga é "foi pro checkout". Se um dia o gateway mandar
-webhook de volta com o `session_id` viajando junto, dá pra fechar o funil até a
-compra.
+Com o webhook ligado, o funil vai até a venda. O que continua fora do alcance
+daqui é o que acontece **dentro** do checkout: quantos abriram o formulário,
+onde travaram no pagamento, quantas tentativas de cartão. Essa parte só o
+relatório do próprio gateway mostra.
+
+O e-mail digitado na tela de contato do quiz também não entra aqui — só o do
+comprador, que vem do gateway junto com o pedido.
 
 ## Não rastrear
 

@@ -80,10 +80,54 @@ CREATE TABLE IF NOT EXISTS bt_sessions (
   last_section  VARCHAR(40),                       -- último bloco da oferta visto
   duration_sec  INTEGER     NOT NULL DEFAULT 0,   -- tempo ATIVO (aba em foco)
   cta_clicks    SMALLINT    NOT NULL DEFAULT 0,
-  reached_checkout BOOLEAN  NOT NULL DEFAULT FALSE
+  reached_checkout BOOLEAN  NOT NULL DEFAULT FALSE,
+  -- Espelho da venda, carimbado pelo webhook do gateway. Fica aqui (e não só
+  -- em bt_orders) pra cruzar compra com nota, faixa e origem sem JOIN.
+  purchased      BOOLEAN    NOT NULL DEFAULT FALSE,
+  purchase_cents INTEGER,
+  purchase_ts    TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_bt_sessions_first ON bt_sessions (first_ts);
 CREATE INDEX IF NOT EXISTS idx_bt_sessions_utm   ON bt_sessions (utm_source, utm_campaign);
+
+-- Quem já tinha o painel no ar antes da tela de Vendas: as três colunas acima
+-- nascem por aqui (o api/_db.js roda estes ALTERs sozinho a cada deploy).
+ALTER TABLE bt_sessions ADD COLUMN IF NOT EXISTS purchased      BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE bt_sessions ADD COLUMN IF NOT EXISTS purchase_cents INTEGER;
+ALTER TABLE bt_sessions ADD COLUMN IF NOT EXISTS purchase_ts    TIMESTAMPTZ;
+
+-- ── VENDAS ──────────────────────────────────────────────────────────────────
+-- 1 linha por pedido, alimentada pelo webhook do checkout (api/webhook-vega.js).
+-- É a única tabela que sabe o que acontece DEPOIS do clique em comprar.
+--
+-- order_id é UNIQUE de propósito: o webhook chega repetido e chega em ordem
+-- (pendente → pago → estornado). O insert é upsert — reenvio não duplica venda.
+-- `raw` guarda o payload cru: se o gateway mudar um nome de campo, nada se perde.
+--
+-- Esta tabela NÃO tem autolimpeza por data, ao contrário das outras três.
+CREATE TABLE IF NOT EXISTS bt_orders (
+  id            BIGSERIAL PRIMARY KEY,
+  order_id      VARCHAR(120) NOT NULL UNIQUE,  -- id do pedido no gateway
+  session_id    VARCHAR(40),                   -- visita que originou (NULL se não veio)
+  status        VARCHAR(20)  NOT NULL,         -- pago|pendente|recusado|estornado|chargeback|cancelado|abandonado|desconhecido
+  evento        VARCHAR(60),                   -- nome do evento no webhook
+  valor_cents   INTEGER,                       -- SEMPRE em centavos
+  moeda         VARCHAR(3)   NOT NULL DEFAULT 'BRL',
+  metodo        VARCHAR(20),                   -- pix|cartao|boleto|...
+  produto       VARCHAR(160),
+  cliente_nome  VARCHAR(160),
+  cliente_email VARCHAR(160),
+  cliente_fone  VARCHAR(40),
+  utm_source    VARCHAR(120),
+  utm_campaign  VARCHAR(160),
+  raw           JSONB,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),  -- 1ª notificação
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),  -- última notificação
+  paid_at       TIMESTAMPTZ                           -- quando virou pago
+);
+CREATE INDEX IF NOT EXISTS idx_bt_orders_created ON bt_orders (created_at);
+CREATE INDEX IF NOT EXISTS idx_bt_orders_status  ON bt_orders (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_bt_orders_session ON bt_orders (session_id);
 
 -- ── RATE LIMIT ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS bt_rate_limit (

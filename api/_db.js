@@ -126,6 +126,50 @@ async function initDb() {
     await c.query(`CREATE INDEX IF NOT EXISTS idx_bt_sessions_first ON bt_sessions (first_ts);`);
     await c.query(`CREATE INDEX IF NOT EXISTS idx_bt_sessions_utm ON bt_sessions (utm_source, utm_campaign);`);
 
+    // ── VENDAS ──────────────────────────────────────────────────────────────
+    // 1 linha por pedido do checkout, alimentada pelo webhook do gateway
+    // (api/webhook-vega.js). É a única tabela que sabe o que aconteceu DEPOIS
+    // do clique em "comprar" — sem ela o painel para em "foi pro checkout".
+    //
+    // order_id é UNIQUE de propósito: webhook chega repetido e chega em ordem
+    // (pendente → pago → estornado). O insert é upsert, então reenvio não
+    // duplica venda e a linha sempre reflete o último estado conhecido.
+    //
+    // `raw` guarda o payload cru. O formato do gateway pode mudar, ou trazer
+    // campo que o parser ainda não conhece — com o cru salvo, dá pra reprocessar
+    // sem ter perdido nada.
+    await c.query(`
+      CREATE TABLE IF NOT EXISTS bt_orders (
+        id            BIGSERIAL PRIMARY KEY,
+        order_id      VARCHAR(120) NOT NULL UNIQUE,  -- id do pedido no gateway
+        session_id    VARCHAR(40),                   -- visita que originou (pode ser NULL)
+        status        VARCHAR(20)  NOT NULL,         -- pago|pendente|recusado|estornado|chargeback|cancelado|abandonado|desconhecido
+        evento        VARCHAR(60),                   -- nome do evento do webhook
+        valor_cents   INTEGER,                       -- SEMPRE em centavos
+        moeda         VARCHAR(3)   NOT NULL DEFAULT 'BRL',
+        metodo        VARCHAR(20),                   -- pix|cartao|boleto|...
+        produto       VARCHAR(160),
+        cliente_nome  VARCHAR(160),
+        cliente_email VARCHAR(160),
+        cliente_fone  VARCHAR(40),
+        utm_source    VARCHAR(120),
+        utm_campaign  VARCHAR(160),
+        raw           JSONB,
+        created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),  -- 1ª notificação
+        updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),  -- última notificação
+        paid_at       TIMESTAMPTZ                           -- quando virou pago
+      );`);
+    await c.query(`CREATE INDEX IF NOT EXISTS idx_bt_orders_created ON bt_orders (created_at);`);
+    await c.query(`CREATE INDEX IF NOT EXISTS idx_bt_orders_status ON bt_orders (status, created_at);`);
+    await c.query(`CREATE INDEX IF NOT EXISTS idx_bt_orders_session ON bt_orders (session_id);`);
+
+    // Espelho da compra na sessão: é o que permite cruzar venda com nota do
+    // quiz, faixa, origem e rolagem sem JOIN em toda consulta. ADD COLUMN IF
+    // NOT EXISTS porque o banco de quem já subiu o painel não tem essas colunas.
+    await c.query(`ALTER TABLE bt_sessions ADD COLUMN IF NOT EXISTS purchased BOOLEAN NOT NULL DEFAULT FALSE;`);
+    await c.query(`ALTER TABLE bt_sessions ADD COLUMN IF NOT EXISTS purchase_cents INTEGER;`);
+    await c.query(`ALTER TABLE bt_sessions ADD COLUMN IF NOT EXISTS purchase_ts TIMESTAMPTZ;`);
+
     // ── RATE LIMIT ──────────────────────────────────────────────────────────
     await c.query(`
       CREATE TABLE IF NOT EXISTS bt_rate_limit (

@@ -103,6 +103,7 @@
     {id:'funil',     label:'Funil',         icon:'filter_list',           sub:'Onde a visita morre'},
     {id:'calor',     label:'Mapa de Calor', icon:'local_fire_department', sub:'Onde o dedo encosta na tela de oferta'},
     {id:'perguntas', label:'Perguntas',     icon:'quiz',                  sub:'Que mito pega mais gente'},
+    {id:'vendas',    label:'Vendas',        icon:'payments',              sub:'Quem comprou, quem não comprou'},
     {id:'sessoes',   label:'Sessões',       icon:'person_search',         sub:'Jornada de cada visita'},
     {id:'eventos',   label:'Eventos',       icon:'terminal',              sub:'Log cru do rastreio'},
   ];
@@ -146,6 +147,19 @@
   let token=null, screen='visao', quick='7d', from='', to='';
   let hmDevice='mobile', hmBand=2, hmSection='', hmData=null;
   let sessFiltro='all';
+  let vendaFiltro='todos';
+
+  // Os estados que o webhook do gateway normaliza (ver api/webhook-vega.js).
+  const STATUS_VENDA = {
+    pago:        {rotulo:'Pago',        cor:'text-bt-verde'},
+    pendente:    {rotulo:'Aguardando',  cor:'text-bt-warn'},
+    recusado:    {rotulo:'Recusado',    cor:'text-bt-danger'},
+    estornado:   {rotulo:'Estornado',   cor:'text-bt-danger'},
+    chargeback:  {rotulo:'Chargeback',  cor:'text-bt-danger'},
+    cancelado:   {rotulo:'Cancelado',   cor:'text-bt-muted'},
+    abandonado:  {rotulo:'Abandonou',   cor:'text-bt-muted'},
+    desconhecido:{rotulo:'?',           cor:'text-bt-muted'},
+  };
 
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -155,6 +169,8 @@
   const qLabel=s=>{ const i=parseInt(String(s).replace(/\D/g,''),10); return i>=1&&i<=10?(i+'. '+PERGUNTAS[i-1]):(s||'—'); };
   const fmtDur=s=>{s=Number(s||0);return s<60?s+'s':Math.floor(s/60)+'m'+(s%60?(s%60)+'s':'');};
   const fmtDT=d=>d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+  // Valor SEMPRE chega em centavos do webhook — a conversão mora só aqui.
+  const brl=c=>(Number(c||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 
   // ── Sessão do painel ─────────────────────────────────────────────────────
   function saveToken(t){ token=t; try{sessionStorage.setItem('bt_painel_tk',t);}catch(_){} }
@@ -240,11 +256,14 @@
     const maxDia = Math.max(1, ...d.porDia.map(x=>Number(x.sessoes)));
 
     return `
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
       ${card('Abriram o quiz', n(r.sessoes), 'visitas únicas no período')}
       ${card('Terminaram as 10', n(r.terminaram), pct(r.terminaram, r.sessoes)+' de quem abriu','text-bt-ouro-claro')}
       ${card('Viram a oferta', n(r.viram_oferta), pct(r.viram_oferta, r.sessoes)+' de quem abriu','text-bt-ouro')}
-      ${card('Foram ao checkout', n(r.checkouts), pct(r.checkouts, r.sessoes)+' de quem abriu','text-bt-verde')}
+      ${card('Foram ao checkout', n(r.checkouts), pct(r.checkouts, r.sessoes)+' de quem abriu','text-bt-ouro')}
+      ${card('Compraram', n(r.compras||0), Number(r.compras)>0
+              ? brl(r.receita_cents)+' · '+pct(r.compras, r.checkouts)+' do checkout'
+              : 'chega pelo webhook — ver Vendas','text-bt-verde')}
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -702,12 +721,203 @@
       </p>` : vazio('Sem resultados no período'), 'mt-3')}`;
   }
 
+  // ══ TELA: VENDAS ════════════════════════════════════════════════════════
+  // A única tela alimentada de fora: o gateway avisa cada pedido pelo webhook
+  // (api/webhook-vega.js). Todas as outras medem comportamento — esta mede
+  // dinheiro, e é ela que diz se o resto do painel está olhando pro lugar certo.
+  async function telaVendas(){
+    const d = await api('/api/admin-orders', { filtro:vendaFiltro, limit:100 });
+    const r = d.resumo;
+    const FILTROS=[
+      {k:'todos',     l:'Todos'},
+      {k:'pagos',     l:'Pagos'},
+      {k:'pendentes', l:'Aguardando pagamento'},
+      {k:'problema',  l:'Recusados e estornos'},
+    ];
+    const maxDia = Math.max(1, ...d.porDia.map(x=>Number(x.receita_cents)));
+
+    setTimeout(()=>{
+      document.querySelectorAll('[data-vf]').forEach(b=>b.onclick=()=>{ vendaFiltro=b.dataset.vf; render(); });
+      document.querySelectorAll('[data-sess]').forEach(b=>b.onclick=()=>abrirJornada(b.dataset.sess));
+      const cp=$('copiaHook');
+      if(cp) cp.onclick=()=>{
+        const campo=$('hookUrl');
+        campo.select(); campo.setSelectionRange(0,9999);
+        try{ document.execCommand('copy'); cp.textContent='copiado'; setTimeout(()=>cp.textContent='copiar',1600); }catch(_){}
+      };
+    },0);
+
+    // Enquanto nada chegou, a tela vira instrução de instalação — é mais útil
+    // que quatro zeros e um gráfico vazio.
+    const semDados = r.pedidos === 0;
+    const instalacao = `
+      <div class="bg-bt-surface border ${semDados?'border-bt-ouro/40':'border-bt-border'} rounded-xl p-4 ${semDados?'':'mt-3'}">
+        <h3 class="font-playfair text-headline-lg mb-1">Ligar o checkout no painel</h3>
+        <p class="text-body-md text-bt-muted mb-3">
+          Cole esta URL no seu checkout, em <strong>Dev → Webhooks</strong>, marcando os eventos de
+          <strong>pedido pago</strong>, <strong>pendente</strong>, <strong>recusado</strong> e
+          <strong>estorno</strong>. Aceita POST em JSON.
+        </p>
+        <div class="flex gap-2 items-stretch">
+          <input id="hookUrl" readonly value="${esc(d.webhook.url||'—')}"
+            class="flex-1 px-3 py-2 rounded-lg bg-bt-bg border border-bt-border text-body-md font-mono truncate" />
+          <button id="copiaHook" class="px-3 py-2 rounded-lg border border-bt-ouro text-bt-ouro text-label-md hover:bg-bt-ouro hover:text-bt-bg transition-colors">copiar</button>
+        </div>
+        ${d.webhook.configurado ? '' : `
+          <p class="text-body-md text-bt-danger mt-3">
+            Falta a variável <code>VEGA_WEBHOOK_TOKEN</code> nas Environment Variables da Vercel.
+            Sem ela o endpoint recusa toda notificação — é o que impede alguém de inventar venda no seu painel.
+          </p>`}
+        <p class="text-label-sm text-bt-muted mt-3 pt-3 border-t border-bt-border">
+          O quiz manda o id da visita junto no link do checkout (<code>bt_sid</code>, <code>sck</code>, <code>src</code>).
+          Se o gateway devolver qualquer um deles no webhook, a venda cola na sessão e você vê a nota que a pessoa tirou.
+          Se não devolver, a venda ainda entra — só fica sem jornada.
+        </p>
+      </div>`;
+
+    if(semDados) return instalacao + `<div class="mt-3">${vazio('Nenhuma notificação de venda chegou ainda neste período')}</div>`;
+
+    return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      ${card('Receita', brl(r.receita_cents), n(r.pagos)+' pedidos pagos','text-bt-verde')}
+      ${card('Ticket médio', brl(r.ticket_cents), 'por venda paga')}
+      ${card('Aguardando', n(r.pendentes), 'pix/boleto sem pagamento', r.pendentes?'text-bt-warn':'text-bt-text')}
+      ${card('Estornos', n(r.estornos), 'já saíram da receita', r.estornos?'text-bt-danger':'text-bt-text')}
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      ${card('Foram ao checkout', n(r.checkouts), 'visitas que clicaram em comprar')}
+      ${card('Compraram', n(r.compraram), pct(r.compraram, r.checkouts)+' de quem foi ao checkout','text-bt-verde')}
+      ${card('Não compraram', n(r.abandonaram), 'clicaram e não fecharam', r.abandonaram?'text-bt-warn':'text-bt-text')}
+      ${card('Recusados', n(r.recusados), 'cartão negado ou cancelado', r.recusados?'text-bt-danger':'text-bt-text')}
+    </div>
+
+    ${r.pagos_sem_vinculo ? `
+      <div class="bg-bt-warn/10 border border-bt-warn/30 rounded-lg p-4 text-body-md text-bt-warn mb-4">
+        <strong>${n(r.pagos_sem_vinculo)} ${r.pagos_sem_vinculo===1?'venda paga chegou':'vendas pagas chegaram'} sem id de visita.</strong>
+        Elas contam na receita, mas não dá pra saber que nota a pessoa tirou nem por onde ela veio.
+        Isso acontece quando o checkout não repassa os parâmetros da URL no webhook — vale conferir
+        se o campo de rastreio (<code>sck</code> / <code>src</code>) está habilitado lá.
+      </div>` : ''}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+      ${painel('Receita por dia', d.porDia.length ? `
+        <div class="space-y-2">
+          ${d.porDia.map(x=>`
+            <div>
+              <div class="flex justify-between text-label-md mb-1">
+                <span class="text-bt-muted">${x.dia.slice(8)}/${x.dia.slice(5,7)}</span>
+                <span><span class="text-bt-verde">${brl(x.receita_cents)}</span> · ${n(x.pagos)} ${Number(x.pagos)===1?'venda':'vendas'}</span>
+              </div>
+              ${barra(Number(x.receita_cents)/maxDia*100,'bg-bt-verde')}
+            </div>`).join('')}
+        </div>` : vazio('Sem vendas no período'))}
+
+      ${painel('A nota do quiz compra?', d.porFaixa.length ? `
+        <table class="w-full text-body-md">
+          <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+            <th class="text-left py-2">Faixa</th><th class="text-right">Chegaram</th>
+            <th class="text-right">Checkout</th><th class="text-right">Compraram</th><th class="text-right">Receita</th></tr></thead>
+          <tbody>${d.porFaixa.map(x=>{
+            const f=FAIXAS[x.band]||{nota:'?',nome:'—'};
+            return `<tr class="border-b border-bt-border/50">
+              <td class="py-2"><span class="text-bt-ouro-claro">${f.nota}</span>
+                <span class="text-bt-muted text-label-sm block truncate max-w-[150px]">${esc(f.nome)}</span></td>
+              <td class="text-right">${n(x.sessoes)}</td>
+              <td class="text-right text-bt-muted">${n(x.checkouts)}</td>
+              <td class="text-right text-bt-verde font-bold">${n(x.compras)}
+                <span class="text-label-sm text-bt-muted block">${pct(x.compras,x.sessoes)}</span></td>
+              <td class="text-right">${brl(x.receita_cents)}</td>
+            </tr>`;}).join('')}</tbody>
+        </table>
+        <p class="text-label-sm text-bt-muted mt-3 pt-3 border-t border-bt-border">
+          A aposta do funil é que nota baixa compra mais — o quiz existe pra abrir a lacuna.
+          Aqui a conta é feita com venda paga, não com clique no botão.
+        </p>` : vazio('Nenhuma compra vinculada a uma faixa ainda'))}
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-3">
+      ${FILTROS.map(f=>`<button data-vf="${f.k}" class="px-3 py-1.5 rounded-lg text-label-md border transition-colors ${
+        vendaFiltro===f.k?'bg-bt-ouro text-bt-bg border-bt-ouro font-bold':'border-bt-border text-bt-muted hover:text-bt-text'
+      }">${f.l}</button>`).join('')}
+    </div>
+
+    ${painel('Quem comprou · '+n(d.pedidos.length)+' '+(d.pedidos.length===1?'pedido':'pedidos'), d.pedidos.length ? `
+      <div class="overflow-x-auto">
+      <table class="w-full text-body-md whitespace-nowrap">
+        <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+          <th class="text-left py-2">Quando</th><th class="text-left">Cliente</th>
+          <th class="text-left">Contato</th><th class="text-right">Valor</th>
+          <th class="text-center">Status</th><th class="text-left">Forma</th>
+          <th class="text-right">Nota</th><th class="text-left">Origem</th><th></th></tr></thead>
+        <tbody>${d.pedidos.map(p=>{
+          const st=STATUS_VENDA[p.status]||STATUS_VENDA.desconhecido;
+          return `<tr class="border-b border-bt-border/50 hover:bg-bt-surface3">
+            <td class="py-2 text-bt-muted">${fmtDT(p.created_at)}</td>
+            <td class="truncate max-w-[160px]">${esc(p.cliente_nome||'—')}</td>
+            <td class="text-bt-muted truncate max-w-[190px]">${esc(p.cliente_email||p.cliente_fone||'—')}</td>
+            <td class="text-right ${p.status==='pago'?'text-bt-verde':''}">${p.valor_cents==null?'—':brl(p.valor_cents)}</td>
+            <td class="text-center ${st.cor} font-bold">${st.rotulo}</td>
+            <td class="text-bt-muted capitalize">${esc(p.metodo||'—')}</td>
+            <td class="text-right">${p.score==null?'<span class="text-bt-muted">—</span>':p.score+'/10'}</td>
+            <td class="text-bt-muted truncate max-w-[110px]">${esc(p.origem||'direto')}</td>
+            <td>${p.session_id
+              ? `<button data-sess="${esc(p.session_id)}" class="text-bt-ouro hover:underline text-label-md">ver jornada</button>`
+              : '<span class="text-label-sm text-bt-muted">sem visita</span>'}</td>
+          </tr>`;}).join('')}</tbody>
+      </table></div>` : vazio('Nenhum pedido com esse filtro'))}
+
+    ${painel('Foram ao checkout e não compraram · '+n(r.abandonaram), d.abandonos.length ? `
+      <p class="text-body-md text-bt-muted mb-3">
+        Clicaram em comprar e a venda não veio. Quem deixou contato na tela de captura aparece primeiro —
+        é com essa gente que dá pra fazer alguma coisa hoje.
+      </p>
+      <div class="overflow-x-auto">
+      <table class="w-full text-body-md whitespace-nowrap">
+        <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+          <th class="text-left py-2">Quando</th><th class="text-left">Aparelho</th>
+          <th class="text-right">Nota</th><th class="text-right">Rolou</th>
+          <th class="text-right">Tempo</th><th class="text-center">Contato</th>
+          <th class="text-left">Origem</th><th></th></tr></thead>
+        <tbody>${d.abandonos.map(s=>`
+          <tr class="border-b border-bt-border/50 hover:bg-bt-surface3">
+            <td class="py-2 text-bt-muted">${fmtDT(s.first_ts)}</td>
+            <td class="capitalize">${esc(s.device||'—')}</td>
+            <td class="text-right">${s.score==null?'—':s.score+'/10'}</td>
+            <td class="text-right text-bt-muted">${s.max_scroll}%</td>
+            <td class="text-right text-bt-muted">${fmtDur(s.duration_sec)}</td>
+            <td class="text-center">${s.contact?'<span class="text-bt-ouro-claro font-bold">deixou</span>':'<span class="text-bt-muted">—</span>'}</td>
+            <td class="text-bt-muted truncate max-w-[110px]">${esc(s.utm_source||'direto')}</td>
+            <td><button data-sess="${esc(s.session_id)}" class="text-bt-ouro hover:underline text-label-md">ver jornada</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>` : vazio('Todo mundo que foi ao checkout comprou'), 'mt-3')}
+
+    ${painel('Origem que traz dinheiro', d.porOrigem.length ? `
+      <table class="w-full text-body-md">
+        <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+          <th class="text-left py-2">Origem</th><th class="text-right">Visitas</th>
+          <th class="text-right">Compras</th><th class="text-right">Conversão</th><th class="text-right">Receita</th></tr></thead>
+        <tbody>${d.porOrigem.map(x=>`
+          <tr class="border-b border-bt-border/50">
+            <td class="py-2">${esc(x.origem)}</td>
+            <td class="text-right text-bt-muted">${n(x.sessoes)}</td>
+            <td class="text-right text-bt-verde">${n(x.compras)}</td>
+            <td class="text-right">${pct(x.compras,x.sessoes)}</td>
+            <td class="text-right">${brl(x.receita_cents)}</td>
+          </tr>`).join('')}</tbody>
+      </table>` : vazio('Sem origem registrada'), 'mt-3')}
+
+    ${instalacao}`;
+  }
+
   // ══ TELA: SESSÕES ═══════════════════════════════════════════════════════
   async function telaSessoes(){
     const d = await api('/api/admin-sessions', { filtro:sessFiltro, limit:60 });
     const FILTROS=[
-      {k:'all',      l:'Todas'},
-      {k:'checkout', l:'Foram ao checkout'},
+      {k:'all',        l:'Todas'},
+      {k:'comprou',    l:'Compraram'},
+      {k:'nao-comprou',l:'Foram ao checkout e não compraram'},
+      {k:'checkout',   l:'Foram ao checkout'},
       {k:'cta',      l:'Clicaram e não foram'},
       {k:'oferta',   l:'Viram a oferta e não clicaram'},
       {k:'largou',   l:'Largaram o quiz no meio'},
@@ -744,7 +954,8 @@
             <td class="text-right text-bt-muted">${fmtDur(s.duration_sec)}</td>
             <td class="truncate max-w-[130px]">${s.reached_result?esc(secLabel(s.last_section)):'—'}</td>
             <td class="text-center">${
-              s.reached_checkout?'<span class="text-bt-verde font-bold">checkout</span>'
+              s.purchased?'<span class="text-bt-verde font-bold">comprou</span>'
+              : s.reached_checkout?'<span class="text-bt-ouro-claro">checkout</span>'
               : s.cta_clicks>0?'<span class="text-bt-ouro">clicou</span>'
               : s.reached_result?'<span class="text-bt-ouro-claro">viu a oferta</span>'
               : s.max_q>0?'<span class="text-bt-muted">largou no meio</span>'
@@ -786,8 +997,21 @@
             ${s.referrer?`<div class="col-span-2"><span class="text-bt-muted text-label-md block">Veio de</span>
               <span class="break-all text-label-md">${esc(s.referrer)}</span></div>`:''}
           </div>
-          ${s.reached_checkout?`<div class="bg-bt-verde/10 border border-bt-verde/30 rounded-lg p-3 text-body-md">
-            <strong class="text-bt-verde">Foi pro checkout.</strong> A venda em si acontece no gateway, fora daqui.</div>`:''}
+          ${(d.pedidos&&d.pedidos.length)?`
+            <div class="bg-bt-verde/10 border border-bt-verde/30 rounded-lg p-3 space-y-2">
+              <strong class="text-bt-verde text-body-md">${d.pedidos.length===1?'Pedido no checkout':'Pedidos no checkout'}</strong>
+              ${d.pedidos.map(p=>{
+                const st=STATUS_VENDA[p.status]||STATUS_VENDA.desconhecido;
+                return `<div class="text-body-md border-t border-bt-verde/20 pt-2">
+                  <span class="${st.cor} font-bold">${st.rotulo}</span> ·
+                  ${p.valor_cents==null?'valor não informado':brl(p.valor_cents)}
+                  ${p.metodo?' · '+esc(p.metodo):''}
+                  <span class="text-label-sm text-bt-muted block">${fmtDT(p.created_at)} · ${esc(p.cliente_email||p.cliente_nome||'sem contato no pedido')}</span>
+                </div>`;}).join('')}
+            </div>`
+          : s.reached_checkout?`<div class="bg-bt-warn/10 border border-bt-warn/30 rounded-lg p-3 text-body-md">
+            <strong class="text-bt-warn">Foi pro checkout e não voltou venda.</strong>
+            Ou desistiu na hora de pagar, ou o gateway não repassou o id desta visita no webhook.</div>`:''}
           ${s.contact?`<div class="bg-bt-ouro/10 border border-bt-ouro/30 rounded-lg p-3 text-body-md text-bt-ouro-claro">
             Deixou e-mail/WhatsApp na tela de contato.</div>`:''}
           <div>
@@ -857,6 +1081,7 @@
       else if(screen==='funil')     html = await telaFunil();
       else if(screen==='calor')     html = await telaCalor();
       else if(screen==='perguntas') html = await telaPerguntas();
+      else if(screen==='vendas')    html = await telaVendas();
       else if(screen==='sessoes')   html = await telaSessoes();
       else if(screen==='eventos')   html = await telaEventos();
       $('content').innerHTML = html;

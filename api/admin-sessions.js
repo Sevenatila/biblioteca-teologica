@@ -37,10 +37,21 @@ module.exports = async function handler(req, res) {
         [id]
       );
 
+      // O que aconteceu depois que a pessoa saiu daqui — chega pelo webhook do
+      // gateway. Uma visita pode ter mais de um pedido (pix que expirou e uma
+      // segunda tentativa no cartão, por exemplo).
+      const pedidos = await db.query(
+        `SELECT order_id, status, valor_cents, metodo, produto,
+                cliente_nome, cliente_email, created_at, paid_at
+           FROM bt_orders WHERE session_id = $1 ORDER BY created_at ASC LIMIT 20`,
+        [id]
+      );
+
       return res.status(200).json({
         sessao:  sessao.rows[0],
         eventos: eventos.rows,
         cliques: cliques.rows,
+        pedidos: pedidos.rows,
       });
     }
 
@@ -50,7 +61,9 @@ module.exports = async function handler(req, res) {
     let where = S.clause;
 
     const filtro = String(q.filtro || 'all');
-    if (filtro === 'checkout')      where += ` AND s.reached_checkout`;
+    if (filtro === 'comprou')       where += ` AND s.purchased`;
+    else if (filtro === 'nao-comprou') where += ` AND s.reached_checkout AND NOT s.purchased`;
+    else if (filtro === 'checkout') where += ` AND s.reached_checkout`;
     else if (filtro === 'cta')      where += ` AND s.cta_clicks > 0 AND NOT s.reached_checkout`;
     else if (filtro === 'oferta')   where += ` AND s.reached_result AND s.cta_clicks = 0`;
     else if (filtro === 'largou')   where += ` AND s.max_q > 0 AND s.max_q < 10`;
@@ -72,7 +85,7 @@ module.exports = async function handler(req, res) {
       `SELECT s.session_id, s.first_ts, s.device, s.max_q, s.score, s.band, s.contact,
               s.reached_result, s.max_scroll, s.last_section, s.duration_sec,
               s.cta_clicks, s.reached_checkout, s.utm_source, s.utm_campaign,
-              s.country, s.referrer
+              s.country, s.referrer, s.purchased, s.purchase_cents
          FROM bt_sessions s
         WHERE ${where}
         ORDER BY s.first_ts DESC

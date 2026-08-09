@@ -806,8 +806,26 @@ const CHECKOUT = 'https://checkout.protocolotsr.shop/VCCL1O8SD6FH';
 // Sai por aqui, não por window.location direto no onclick: o rastreio precisa
 // de uma brecha pra despachar o lote antes de a aba trocar de página. 120ms é
 // o bastante pro sendBeacon sair e é imperceptível pra quem clicou.
+//
+// O id da visita vai junto na URL. O checkout devolve esses parâmetros no
+// webhook de venda (api/webhook-vega.js), e é assim que uma compra volta
+// amarrada na sessão que a gerou — sem isso o painel para em "foi pro
+// checkout" e nunca sabe quem comprou. Vai em três nomes porque cada gateway
+// repassa por um: bt_sid é o nosso, sck e src são os que a maioria devolve.
 function irParaCheckout(){
-  setTimeout(()=>{ window.location.href = CHECKOUT; }, 120);
+  let destino = CHECKOUT;
+  try{
+    const u = new URL(CHECKOUT);
+    const sid = (window.BT && BT.sid) || sessionStorage.getItem('bt_sid');
+    if(sid){ u.searchParams.set('bt_sid', sid); u.searchParams.set('sck', sid); u.searchParams.set('src', sid); }
+    // A campanha segue junto: assim o relatório do gateway bate com o painel.
+    const p = new URLSearchParams(location.search);
+    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k=>{
+      const v = p.get(k); if(v) u.searchParams.set(k, v);
+    });
+    destino = u.toString();
+  }catch(_){}
+  setTimeout(()=>{ window.location.href = destino; }, 120);
 }
 
 // ── Modo mapa de calor ──────────────────────────────────────────────────────
