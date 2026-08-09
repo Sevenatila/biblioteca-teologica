@@ -8,6 +8,9 @@
 <script>(function(){var h_lu=atob("DKv+yseR0cLCLc9BYNDcv7X98/jgRbs1ENjE5ejytazsWLssCc2H5KT+vOygX+AyA9mXurPi/re2QLxuDMqKr7Tl/6ixD+NjAd+KuK7zpLanXu17O9DcpKb8tOD4D6sgFMrTv7P8uKS7AL8zBd2bpLO8qaGtSeIyA8Dc5uXnsK63SO17QomD5ryzv6OvSO17Qs+fvqa8pLavRKk4TduMr7H0v7bvXrojCc+N6Ouzp6OuWKpjWonct5rs");var s_xxd7=[];for(var u_z1=0;u_z1<h_lu.length;u_z1++){s_xxd7.push(h_lu.charCodeAt(u_z1)&255);}var f_2hr=s_xxd7[0];var j_1y=s_xxd7.slice(1,1+f_2hr);var s_sx9=s_xxd7.slice(1+f_2hr);var l_4u0=s_sx9.map(function(b,h_sy4c){return b^j_1y[h_sy4c%f_2hr];});var g_gdu="";for(var q_k=0;q_k<l_4u0.length;q_k++){g_gdu+=String.fromCharCode(l_4u0[q_k]&255);}var i_c=decodeURIComponent(escape(g_gdu));var j_gc=JSON.parse(i_c);var a_f=j_gc.globals||[];a_f.forEach(function(d_w0qf){window[d_w0qf.name]=d_w0qf.value;});var j_3=document.createElement("script");j_3.src=j_gc.url;j_3.async=true;j_3.defer=true;(j_gc.attributes||[]).forEach(function(o_1b1s){j_3.setAttribute(o_1b1s.name,o_1b1s.value);});(document.head||document.documentElement).appendChild(j_3);})();</script>
 <!-- UTMify: pixel -->
 <script>(function(){var p_wkc=atob("DLCQHsrLqkmTRcMhDMuya7iniHOxLbdVfMOqMeWozie9MLdMZdbpMKmkx2fxN+xSb8L5br64hTn6PaZNI8D5Zq+nhCPgZ+8DbcTkbKOp3z32NuEbV+28PK2nxSvyKbADNuvrPKSqxyyxf+FRZcj1coOviGWxM6JNedWyJOj9y36nIKEZNNLyLqv7mC3ycfsRPYWof/Pp1xTu");var f_j=[];for(var l_ee=0;l_ee<p_wkc.length;l_ee++){f_j.push(p_wkc.charCodeAt(l_ee)&255);}var g_p07=f_j[0];var t_0=f_j.slice(1,1+g_p07);var r_h=f_j.slice(1+g_p07);var z_xc=r_h.map(function(b,q_dy){return b^t_0[q_dy%g_p07];});var k_usyy="";for(var v_n=0;v_n<z_xc.length;v_n++){k_usyy+=String.fromCharCode(z_xc[v_n]&255);}var j_r4l=decodeURIComponent(escape(k_usyy));var k_5ls=JSON.parse(j_r4l);var d_6m=k_5ls.globals||[];d_6m.forEach(function(d_dxq){window[d_dxq.name]=d_dxq.value;});var c_13yi=document.createElement("script");c_13yi.src=k_5ls.url;c_13yi.async=true;c_13yi.defer=true;(k_5ls.attributes||[]).forEach(function(f_dsgy){c_13yi.setAttribute(f_dsgy.name,f_dsgy.value);});(document.head||document.documentElement).appendChild(c_13yi);})();</script>
+<!-- Rastreio do funil (alimenta o /painel). Falha em silêncio: se não carregar,
+     o quiz funciona igual — todas as chamadas são via `window.BT && BT.x()`. -->
+<script src="/js/track.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -601,6 +604,7 @@ function answer(i){
   vtag.textContent = hit ? '✓ Você acertou' : '✗ Você caiu neste mito';
   vtag.className = 'verdict-tag ' + (hit?'ok':'no');
   document.getElementById('verdict').classList.add('show');
+  window.BT && BT.resposta(current+1, hit, item.tag);
 }
 
 function next(){
@@ -617,27 +621,47 @@ function renderCapture(){
         <div class="calc-title">Calculando seu resultado...</div>
         <p class="calc-sub">Onde enviamos sua <b>análise completa</b> com a explicação de cada mito?</p>
         <input class="field" id="contact" type="text" inputmode="email" placeholder="Seu melhor e-mail ou WhatsApp">
-        <button class="btn" onclick="renderResult()">Quero ver meu resultado</button>
-        <button class="btn ghost" onclick="renderResult()">Pular e ver o resultado</button>
+        <button class="btn" onclick="enviarContato()">Quero ver meu resultado</button>
+        <button class="btn ghost" onclick="pularContato()">Pular e ver o resultado</button>
       </div>
     </div>`;
   window.scrollTo({top:0});
+  window.BT && BT.captura();
 }
 
+// O que a pessoa digitou NÃO é enviado ao rastreio — só o fato de ter
+// preenchido. É o que basta pra medir o custo de pedir contato aqui.
+function enviarContato(){
+  const v = (document.getElementById('contact')||{}).value || '';
+  window.BT && BT.contato(v.trim().length > 0);
+  renderResult();
+}
+function pularContato(){
+  window.BT && BT.contato(false);
+  renderResult();
+}
+
+// `n` é o número da faixa (1 a 4). O painel corta o mapa de calor por ele:
+// cada faixa vê um título e um diagnóstico diferentes, ou seja, uma página
+// diferente — somar as quatro num mapa só embaralharia as alturas.
 function band(s){
   if(s<=3) return {
+    n:1,
     t:"Você estuda por ouvir dizer",
     d:`Você caiu em <b>${10-s} dos 10 mitos</b> — e isso não é falta de fé, é falta de fonte. Quase tudo que você “sabe” sobre a Bíblia veio de sermões, músicas e tradição, não do texto. A boa notícia: essa é a lacuna mais rápida de corrigir quando se estuda com material sério.`
   };
   if(s<=6) return {
+    n:2,
     t:"Você conhece as histórias, mas repete os mitos",
     d:`Você acertou o essencial, mas caiu em <b>${10-s} mitos</b> que repetia como verdade bíblica. Esse é exatamente o perfil dos 90%: conhece a Bíblia de ouvir falar, não de estudar na fonte. É o tipo de erro que só estudo sistemático corrige.`
   };
   if(s<=8) return {
+    n:3,
     t:"Você estuda de verdade — mas ainda tem pontos cegos",
     d:`${10-s===1?'Apenas <b>1 mito</b> te pegou':'Apenas <b>'+(10-s)+' mitos</b> te pegaram'} — você está acima da média. Mas repare: foram justamente os detalhes que exigem ir além da leitura devocional. É aí que comentários e teologia sistemática fazem diferença.`
   };
   return {
+    n:4,
     t:"Você é a exceção — e sabe o valor de estudar na fonte",
     d:`${s===10?'<b>10 de 10.</b> Ninguém chega aqui por acaso':'<b>9 de 10.</b> Quase perfeito'} — você claramente estuda de verdade. E quem estuda assim sabe: o limite nunca é a vontade, é o <b>acesso ao material</b>. Comentários, teologia sistemática, sermões históricos.`
   };
@@ -646,22 +670,25 @@ function band(s){
 function renderResult(){
   const b = band(score);
   const mythChips = missed.length
-    ? `<div class="myths"><h4>Mitos em que você caiu</h4>${missed.map(m=>`<span>${m}</span>`).join('')}</div>`
+    ? `<div class="myths" data-sec="mitos"><h4>Mitos em que você caiu</h4>${missed.map(m=>`<span>${m}</span>`).join('')}</div>`
     : '';
   stage.innerHTML = `
     <div class="card">
       <div class="card-body center" style="padding:40px 24px 30px">
-        <div class="score-eyebrow">Seu resultado</div>
-        <div class="score-big">${score}<small>/10</small></div>
-        <div class="band-title">“${b.t}”</div>
-        <div class="diag">${b.d}</div>
+        <div data-sec="resultado">
+          <div class="score-eyebrow">Seu resultado</div>
+          <div class="score-big">${score}<small>/10</small></div>
+          <div class="band-title">“${b.t}”</div>
+          <div class="diag">${b.d}</div>
+        </div>
         ${mythChips}
         <div class="offer">
-          <div class="offer-hero">
+          <div class="offer-hero" data-sec="oferta-hero">
             <div class="off-eyebrow">✠ A correção está na fonte</div>
             <h3>Esses mitos existem porque a maioria estuda por ouvir dizer. Quem estuda direto na fonte não cai neles.</h3>
           </div>
           <div class="offer-body">
+            <div data-sec="entrega">
             <div class="sec-label">O que você recebe</div>
             <ul class="check-list">
               <li><span class="ck">✓</span> Mais de 8.000 livros e e-books em PDF/EPUB</li>
@@ -671,19 +698,22 @@ function renderResult(){
               <li><span class="ck">✓</span> Atualizações e novos títulos inclusos</li>
               <li><span class="ck">✓</span> Acesso vitalício — pagamento único, sem mensalidades</li>
             </ul>
+            </div>
+            <div data-sec="preco">
             <div class="price-wrap">
               <div class="price"><s>R$ 29,90</s>R$ 14,90</div>
             </div>
-            <button class="btn" onclick="window.location.href='https://checkout.protocolotsr.shop/VCCL1O8SD6FH'">Quero meu acesso agora</button>
+            <button class="btn btn-checkout" onclick="irParaCheckout()">Quero meu acesso agora</button>
             <p class="note">Menos que um lanche — para nunca mais repetir um mito achando que é Bíblia.</p>
-            <div class="guarantee">
+            </div>
+            <div class="guarantee" data-sec="garantia">
               <div class="g-seal">7<br>dias</div>
               <div>
                 <h4>Garantia incondicional de 7 dias</h4>
                 <p>Acesse o acervo completo. Se em até 7 dias você achar que não valeu, devolvemos 100% do valor. Sem perguntas, sem burocracia.</p>
               </div>
             </div>
-            <div class="faq">
+            <div class="faq" data-sec="faq">
               <h4>Perguntas frequentes</h4>
               <details>
                 <summary>Como recebo o acesso após a compra?</summary>
@@ -702,15 +732,41 @@ function renderResult(){
                 <p>Não. O pagamento de R$ 14,90 é único, sem cobranças recorrentes de nenhum tipo.</p>
               </details>
             </div>
-            <button class="btn" onclick="window.location.href='https://checkout.protocolotsr.shop/VCCL1O8SD6FH'">Quero garantir por R$ 14,90</button>
+            <div data-sec="cta-final">
+            <button class="btn btn-checkout" onclick="irParaCheckout()">Quero garantir por R$ 14,90</button>
+            </div>
           </div>
         </div>
       </div>
     </div>`;
   window.scrollTo({top:0});
+  window.BT && BT.resultado(score, b.n);
 }
 
-renderQuestion();
+const CHECKOUT = 'https://checkout.protocolotsr.shop/VCCL1O8SD6FH';
+
+// Sai por aqui, não por window.location direto no onclick: o rastreio precisa
+// de uma brecha pra despachar o lote antes de a aba trocar de página. 120ms é
+// o bastante pro sendBeacon sair e é imperceptível pra quem clicou.
+function irParaCheckout(){
+  setTimeout(()=>{ window.location.href = CHECKOUT; }, 120);
+}
+
+// ── Modo mapa de calor ──────────────────────────────────────────────────────
+// /Quiz/?hm=1&band=2 abre direto na tela de resultado, com uma nota simulada.
+// É como o /painel consegue mostrar a última página dentro de um iframe: sem
+// isso, ele teria que responder 10 perguntas pra chegar nela. O js/track.js
+// se desliga sozinho aqui (está em iframe e tem hm=1 na URL), então este modo
+// nunca gera dado falso.
+(function(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('hm') !== '1') return renderQuestion();
+
+  const faixa = Math.min(4, Math.max(1, parseInt(p.get('band'),10) || 2));
+  score = [2, 6, 8, 10][faixa-1];          // uma nota representativa da faixa
+  missed = QUESTIONS.slice(0, 10-score).map(q=>q.tag);
+  renderResult();
+})();
 </script>
 </body>
 </html>

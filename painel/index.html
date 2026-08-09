@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel · Biblioteca Teológica</title>
+<meta name="robots" content="noindex, nofollow, noarchive" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      fontFamily: { archivo:['Archivo','sans-serif'], playfair:['"Playfair Display"','serif'] },
+      colors: {
+        'bt-bg':'#1B0A12', 'bt-surface':'#25101B', 'bt-surface3':'#3E1B2C', 'bt-border':'#4A2038',
+        'bt-text':'#F3ECDA', 'bt-muted':'#B7959F',
+        'bt-ouro':'#C9A44A', 'bt-ouro-claro':'#E7CE8C',
+        'bt-verde':'#4FA97A', 'bt-warn':'#E0A93B', 'bt-danger':'#D9636F',
+      },
+      fontSize: {
+        'display-lg':['34px',{lineHeight:'40px',letterSpacing:'-0.02em',fontWeight:'700'}],
+        'headline-xl':['22px',{lineHeight:'28px',fontWeight:'700'}],
+        'headline-lg':['17px',{lineHeight:'23px',fontWeight:'600'}],
+        'body-lg':['15px',{lineHeight:'22px'}],'body-md':['13px',{lineHeight:'19px'}],
+        'label-md':['12px',{lineHeight:'17px'}],'label-sm':['10px',{lineHeight:'14px'}],
+      },
+      spacing: { gutter:'12px','container-padding':'18px' },
+    }}
+  };
+</script>
+<style>
+  body{background:#1B0A12;overflow:hidden}
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:#25101B}
+  ::-webkit-scrollbar-thumb{background:#4A2038;border-radius:4px}
+  ::-webkit-scrollbar-thumb:hover{background:#6b2e51}
+  input[type=date]{color-scheme:dark}
+  .animate-spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Mapa de calor: a tela de resultado num iframe + camada de pontos por cima. */
+  #hmStage{position:relative;transform-origin:top left}
+  #hmFrame{border:0;display:block;background:#3A0E20}
+  #hmCanvas{position:absolute;inset:0;pointer-events:none}
+  .hm-shell{overflow:auto;max-height:calc(100vh - 250px);border-radius:12px;background:#140710}
+</style>
+</head>
+<body class="font-archivo">
+
+<!-- ══ LOGIN ══════════════════════════════════════════════════════════════ -->
+<main id="login" class="min-h-screen flex items-center justify-center bg-bt-bg text-bt-text px-4">
+  <form id="loginForm" class="bg-bt-surface border border-bt-border p-8 rounded-2xl shadow-2xl max-w-sm w-full">
+    <p class="text-center text-bt-ouro text-2xl mb-1">✠</p>
+    <h1 class="font-playfair text-headline-xl text-bt-ouro-claro text-center mb-1">Painel</h1>
+    <p class="text-bt-muted text-label-md text-center mb-6">Biblioteca Teológica · monitoramento do quiz</p>
+    <input id="p" type="password" placeholder="Senha" autocomplete="current-password"
+      class="w-full px-4 py-3 rounded-lg bg-bt-bg text-bt-text border border-bt-border focus:border-bt-ouro focus:outline-none mb-4" />
+    <p id="authError" class="text-bt-danger text-label-md mb-4 text-center"></p>
+    <button type="submit" id="loginBtn"
+      class="w-full bg-bt-ouro text-bt-bg font-bold py-3 rounded-lg hover:bg-bt-ouro-claro transition-colors disabled:opacity-60">Entrar</button>
+  </form>
+</main>
+
+<!-- ══ APP ════════════════════════════════════════════════════════════════ -->
+<div id="app" class="hidden bg-bt-bg text-bt-text h-screen flex overflow-hidden">
+  <nav class="w-20 lg:w-60 h-screen border-r border-bt-border bg-bt-surface flex flex-col flex-shrink-0 z-20">
+    <div class="h-16 flex items-center justify-center lg:justify-start px-gutter border-b border-bt-border gap-2">
+      <span class="text-bt-ouro">✠</span>
+      <span class="font-playfair text-headline-lg text-bt-ouro-claro hidden lg:block truncate">Biblioteca Teológica</span>
+    </div>
+    <div id="navItems" class="flex-1 overflow-y-auto py-gutter flex flex-col gap-1.5 px-gutter"></div>
+    <div class="p-gutter border-t border-bt-border">
+      <button id="logoutBtn" class="rounded-lg flex items-center gap-3 p-3 w-full text-bt-muted hover:text-bt-danger hover:bg-bt-surface3 transition-colors">
+        <span class="material-symbols-outlined">logout</span><span class="text-label-md hidden lg:block">Sair</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <header class="border-b border-bt-border flex flex-wrap justify-between items-center gap-x-4 gap-y-2 px-container-padding py-3 flex-shrink-0 z-10">
+      <div class="flex flex-col min-w-0">
+        <h1 id="hTitle" class="font-playfair text-headline-xl truncate">Visão Geral</h1>
+        <p id="hSub" class="text-body-md text-bt-muted truncate hidden sm:block"></p>
+      </div>
+      <div class="flex items-center gap-1.5 flex-wrap justify-end" id="periodBar"></div>
+    </header>
+    <div id="content" class="flex-1 overflow-y-auto p-container-padding"></div>
+  </main>
+</div>
+
+<!-- ══ DRAWER (jornada da sessão) ═════════════════════════════════════════ -->
+<div id="drawerOv" class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<aside id="drawer" class="fixed inset-y-0 right-0 w-full md:w-[460px] bg-bt-surface shadow-2xl z-50 border-l border-bt-border translate-x-full transition-transform duration-300 overflow-y-auto"></aside>
+
+<script>
+(function(){
+  'use strict';
+
+  const SCREENS = [
+    {id:'visao',     label:'Visão Geral',   icon:'dashboard',             sub:'O resumo do dia'},
+    {id:'funil',     label:'Funil',         icon:'filter_list',           sub:'Onde a visita morre'},
+    {id:'calor',     label:'Mapa de Calor', icon:'local_fire_department', sub:'Onde o dedo encosta na tela de oferta'},
+    {id:'perguntas', label:'Perguntas',     icon:'quiz',                  sub:'Que mito pega mais gente'},
+    {id:'sessoes',   label:'Sessões',       icon:'person_search',         sub:'Jornada de cada visita'},
+    {id:'eventos',   label:'Eventos',       icon:'terminal',              sub:'Log cru do rastreio'},
+  ];
+  const QUICK = [
+    {key:'hoje', label:'Hoje',    days:0},
+    {key:'7d',   label:'7 dias',  days:6},
+    {key:'15d',  label:'15 dias', days:14},
+    {key:'30d',  label:'30 dias', days:29},
+  ];
+
+  // Os blocos da última página do quiz, na ordem em que aparecem. O painel
+  // rotula os códigos data-sec com isto.
+  const SECOES = {
+    'resultado':'Nota + diagnóstico',
+    'mitos':'Chips de mitos',
+    'oferta-hero':'Chamada da oferta',
+    'entrega':'O que você recebe',
+    'preco':'Preço + 1º botão',
+    'garantia':'Garantia de 7 dias',
+    'faq':'FAQ',
+    'cta-final':'Botão final',
+  };
+  const ORDEM_SECOES = Object.keys(SECOES);
+
+  // As 4 faixas da função band() do quiz.
+  const FAIXAS = {
+    1:{nota:'0–3', nome:'Estuda por ouvir dizer'},
+    2:{nota:'4–6', nome:'Conhece, mas repete mitos'},
+    3:{nota:'7–8', nome:'Estuda, com pontos cegos'},
+    4:{nota:'9–10',nome:'A exceção'},
+  };
+
+  // Os temas das 10 perguntas, na ordem. Serve pra tela Perguntas mostrar
+  // "Jonas e o grande peixe" em vez de "q2".
+  const PERGUNTAS = [
+    'Primeiro milagre de Jesus','Jonas e o grande peixe','Os “três” reis magos',
+    'O fruto proibido','Versículo que não existe','Os animais da arca',
+    'Maria Madalena','“Raiz de todos os males”','A visita dos magos','Autoria de Hebreus',
+  ];
+
+  let token=null, screen='visao', quick='7d', from='', to='';
+  let hmDevice='mobile', hmBand=2, hmSection='', hmData=null;
+  let sessFiltro='all';
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const n=v=>Number(v||0).toLocaleString('pt-BR');
+  const pct=(a,b)=>b?((a/b)*100).toFixed(1)+'%':'0%';
+  const secLabel=s=>SECOES[s]||s||'—';
+  const qLabel=s=>{ const i=parseInt(String(s).replace(/\D/g,''),10); return i>=1&&i<=10?(i+'. '+PERGUNTAS[i-1]):(s||'—'); };
+  const fmtDur=s=>{s=Number(s||0);return s<60?s+'s':Math.floor(s/60)+'m'+(s%60?(s%60)+'s':'');};
+  const fmtDT=d=>d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+
+  // ── Sessão do painel ─────────────────────────────────────────────────────
+  function saveToken(t){ token=t; try{sessionStorage.setItem('bt_painel_tk',t);}catch(_){} }
+  function loadToken(){ try{return sessionStorage.getItem('bt_painel_tk');}catch(_){return null;} }
+  function logout(){ token=null; try{sessionStorage.removeItem('bt_painel_tk');}catch(_){}; $('app').classList.add('hidden'); $('login').classList.remove('hidden'); }
+
+  async function api(path, params){
+    const qs = new URLSearchParams(params||{});
+    if(from) qs.set('from',from);
+    if(to) qs.set('to',to);
+    const r = await fetch(path + (qs.toString()?'?'+qs:''), { headers:{ Authorization:'Bearer '+token } });
+    if(r.status===401){ logout(); throw new Error('Sessão expirada'); }
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error||('Erro '+r.status));
+    return d;
+  }
+
+  // ── Período ──────────────────────────────────────────────────────────────
+  function aplicaQuick(k){
+    quick=k;
+    const q=QUICK.find(x=>x.key===k);
+    const hoje=new Date();
+    const ini=new Date(hoje); ini.setDate(hoje.getDate()-(q?q.days:6));
+    const iso=d=>d.toISOString().slice(0,10);
+    from=iso(ini); to=iso(hoje);
+    renderPeriodo(); render();
+  }
+  function renderPeriodo(){
+    $('periodBar').innerHTML = QUICK.map(q=>
+      `<button data-q="${q.key}" class="px-3 py-1.5 rounded-lg text-label-md border transition-colors ${
+        quick===q.key ? 'bg-bt-ouro text-bt-bg border-bt-ouro font-bold' : 'border-bt-border text-bt-muted hover:text-bt-text hover:border-bt-ouro/50'
+      }">${q.label}</button>`).join('')
+      + `<button id="reloadBtn" class="px-2.5 py-1.5 rounded-lg border border-bt-border text-bt-muted hover:text-bt-ouro" title="Recarregar">
+           <span class="material-symbols-outlined text-[18px]">refresh</span></button>`;
+    $('periodBar').querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>aplicaQuick(b.dataset.q));
+    $('reloadBtn').onclick=()=>render();
+  }
+
+  // ── Navegação ────────────────────────────────────────────────────────────
+  function renderNav(){
+    $('navItems').innerHTML = SCREENS.map(s=>
+      `<button data-s="${s.id}" class="rounded-lg flex items-center gap-3 p-3 w-full text-left transition-colors ${
+        screen===s.id ? 'bg-bt-ouro/15 text-bt-ouro-claro' : 'text-bt-muted hover:bg-bt-surface3 hover:text-bt-text'
+      }">
+        <span class="material-symbols-outlined">${s.icon}</span>
+        <span class="text-label-md hidden lg:block truncate">${s.label}</span>
+      </button>`).join('');
+    $('navItems').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ screen=b.dataset.s; renderNav(); render(); });
+    const cur=SCREENS.find(s=>s.id===screen);
+    $('hTitle').textContent=cur.label; $('hSub').textContent=cur.sub;
+  }
+
+  // ── Blocos visuais ───────────────────────────────────────────────────────
+  function card(titulo, valor, sub, cor){
+    return `<div class="bg-bt-surface border border-bt-border rounded-xl p-4">
+      <p class="text-label-md text-bt-muted mb-1">${esc(titulo)}</p>
+      <p class="text-headline-xl ${cor||'text-bt-text'}">${valor}</p>
+      ${sub?`<p class="text-label-sm text-bt-muted mt-1">${sub}</p>`:''}
+    </div>`;
+  }
+  function painel(titulo, corpo, extra){
+    return `<div class="bg-bt-surface border border-bt-border rounded-xl p-4 ${extra||''}">
+      <h3 class="font-playfair text-headline-lg mb-3">${esc(titulo)}</h3>${corpo}</div>`;
+  }
+  function vazio(msg){
+    return `<div class="text-center py-10 text-bt-muted">
+      <span class="material-symbols-outlined text-4xl opacity-40">inbox</span>
+      <p class="text-body-md mt-2">${esc(msg)}</p></div>`;
+  }
+  function loading(){ return `<div class="flex justify-center py-16"><span class="material-symbols-outlined animate-spin text-bt-ouro text-3xl">progress_activity</span></div>`; }
+  function erro(e){ return `<div class="bg-bt-danger/10 border border-bt-danger/30 rounded-xl p-4 text-bt-danger text-body-md">${esc(e)}</div>`; }
+
+  // Barra horizontal simples — sem biblioteca de gráfico, sem peso.
+  function barra(pctVal, cor){
+    return `<div class="h-2 bg-bt-surface3 rounded-full overflow-hidden">
+      <div class="h-full ${cor||'bg-bt-ouro'} rounded-full" style="width:${Math.min(100,Math.max(0,pctVal))}%"></div></div>`;
+  }
+
+  // ══ TELA: VISÃO GERAL ═══════════════════════════════════════════════════
+  async function telaVisao(){
+    const d = await api('/api/admin-stats');
+    const r = d.resumo;
+    const maxDia = Math.max(1, ...d.porDia.map(x=>Number(x.sessoes)));
+
+    return `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      ${card('Abriram o quiz', n(r.sessoes), 'visitas únicas no período')}
+      ${card('Terminaram as 10', n(r.terminaram), pct(r.terminaram, r.sessoes)+' de quem abriu','text-bt-ouro-claro')}
+      ${card('Viram a oferta', n(r.viram_oferta), pct(r.viram_oferta, r.sessoes)+' de quem abriu','text-bt-ouro')}
+      ${card('Foram ao checkout', n(r.checkouts), pct(r.checkouts, r.sessoes)+' de quem abriu','text-bt-verde')}
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      ${card('Nota média', r.nota_media+'<small class="text-bt-muted text-body-md">/10</small>', 'de quem terminou')}
+      ${card('Deixaram contato', n(r.contatos), pct(r.contatos, r.terminaram)+' de quem terminou','text-bt-ouro-claro')}
+      ${card('Tempo médio', fmtDur(r.tempo_medio), 'mediana '+fmtDur(r.tempo_mediano))}
+      ${card('Saíram na cara', pct(r.saiu_na_cara, r.sessoes), 'nem responderam a 1ª pergunta',
+             r.saiu_na_cara/(r.sessoes||1)>0.5?'text-bt-danger':'text-bt-text')}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      ${painel('Movimento por dia', d.porDia.length ? `
+        <div class="space-y-2">
+          ${d.porDia.map(x=>`
+            <div>
+              <div class="flex justify-between text-label-md mb-1">
+                <span class="text-bt-muted">${x.dia.slice(8)}/${x.dia.slice(5,7)}</span>
+                <span>${n(x.sessoes)} abriram · <span class="text-bt-ouro-claro">${n(x.terminaram)} terminaram</span> · <span class="text-bt-verde">${n(x.checkouts)} checkout</span></span>
+              </div>
+              ${barra(Number(x.sessoes)/maxDia*100)}
+            </div>`).join('')}
+        </div>` : vazio('Sem movimento no período'))}
+
+      ${painel('Rolagem na tela de oferta', `
+        <p class="text-display-lg text-bt-ouro">${r.scroll_oferta}%</p>
+        <p class="text-body-md text-bt-muted mt-1">
+          é o quanto, em média, quem chegou no resultado desce na página.
+        </p>
+        <div class="mt-3">${barra(r.scroll_oferta, r.scroll_oferta<40?'bg-bt-danger':r.scroll_oferta<65?'bg-bt-warn':'bg-bt-verde')}</div>
+        <p class="text-label-sm text-bt-muted mt-3 pt-3 border-t border-bt-border">
+          O botão de compra fica logo depois da lista do que se recebe. Se esta média não passa dela,
+          a maioria está decidindo sem nunca ver o preço — e o Mapa de Calor mostra onde exatamente para.
+        </p>`)}
+
+      ${painel('Aparelho', d.porDispositivo.length ? `
+        <table class="w-full text-body-md">
+          <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+            <th class="text-left py-2">Aparelho</th><th class="text-right">Abriram</th>
+            <th class="text-right">Terminaram</th><th class="text-right">Tempo</th><th class="text-right">Checkout</th></tr></thead>
+          <tbody>${d.porDispositivo.map(x=>`
+            <tr class="border-b border-bt-border/50">
+              <td class="py-2 capitalize">${esc(x.device)}</td>
+              <td class="text-right">${n(x.sessoes)}</td>
+              <td class="text-right text-bt-muted">${n(x.terminaram)}</td>
+              <td class="text-right text-bt-muted">${fmtDur(x.tempo_medio)}</td>
+              <td class="text-right text-bt-verde">${n(x.checkouts)}</td>
+            </tr>`).join('')}</tbody>
+        </table>` : vazio('Sem dados de aparelho'))}
+
+      ${painel('Origem do tráfego', d.porOrigem.length ? `
+        <table class="w-full text-body-md">
+          <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+            <th class="text-left py-2">Origem</th><th class="text-left">Campanha</th>
+            <th class="text-right">Abriram</th><th class="text-right">Checkout</th></tr></thead>
+          <tbody>${d.porOrigem.map(x=>`
+            <tr class="border-b border-bt-border/50">
+              <td class="py-2">${esc(x.origem)}</td>
+              <td class="text-bt-muted truncate max-w-[140px]">${esc(x.campanha)}</td>
+              <td class="text-right">${n(x.sessoes)}</td>
+              <td class="text-right text-bt-verde">${n(x.checkouts)}</td>
+            </tr>`).join('')}</tbody>
+        </table>` : vazio('Sem UTM registrada — o tráfego está chegando direto'))}
+    </div>`;
+  }
+
+  // ══ TELA: FUNIL ═════════════════════════════════════════════════════════
+  async function telaFunil(){
+    const d = await api('/api/admin-funnel');
+    // Maior queda entre degraus = o gargalo. Destacado em vermelho.
+    let pior=null, piorPerda=0;
+    d.passos.forEach((p,i)=>{ if(i>0 && p.perdeu>piorPerda){ piorPerda=p.perdeu; pior=i; } });
+    const maxSec = Math.max(1, ...d.secoes.map(s=>Number(s.sessoes)));
+    const cap = {}; (d.captura||[]).forEach(c=>cap[c.event_name]=Number(c.sessoes));
+    const totalCap = (cap.capture_submit||0)+(cap.capture_skip||0);
+    const secOrdenadas = ORDEM_SECOES
+      .map(k=>d.secoes.find(s=>s.section===k))
+      .filter(Boolean)
+      .concat(d.secoes.filter(s=>!ORDEM_SECOES.includes(s.section)));
+
+    return `
+    ${painel('Da abertura ao checkout', d.passos.length ? `
+      <div class="space-y-3">
+        ${d.passos.map((p,i)=>`
+          <div class="${i===pior?'bg-bt-danger/10 -mx-2 px-2 py-2 rounded-lg border border-bt-danger/25':''}">
+            <div class="flex justify-between items-baseline text-body-md mb-1">
+              <span>${esc(p.label)} ${i===pior?'<span class="text-label-sm text-bt-danger font-bold ml-1">← maior queda</span>':''}</span>
+              <span class="font-bold">${n(p.sessoes)} <span class="text-label-md text-bt-muted font-normal">(${p.pct_do_topo}%)</span></span>
+            </div>
+            ${barra(p.pct_do_topo, i===d.passos.length-1?'bg-bt-verde':'bg-bt-ouro')}
+            ${i>0?`<p class="text-label-sm text-bt-muted mt-1">
+              ${p.pct_do_anterior}% de quem passou pela etapa anterior · perdeu ${n(p.perdeu)}</p>`:''}
+          </div>`).join('')}
+      </div>
+      <p class="text-label-sm text-bt-muted mt-4 pt-3 border-t border-bt-border">
+        "Foi pro checkout" é o último passo que este painel enxerga: o pagamento acontece
+        fora do domínio, no gateway. Se um dia o checkout mandar webhook de volta, dá pra fechar o funil até a venda.
+      </p>` : vazio('Nenhum evento no período. Confira a aba Eventos.'))}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+      ${painel('O pedágio do contato', totalCap ? `
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-body-md mb-1"><span>Deixaram e-mail/WhatsApp</span>
+              <span class="font-bold text-bt-verde">${n(cap.capture_submit||0)} · ${pct(cap.capture_submit||0,totalCap)}</span></div>
+            ${barra((cap.capture_submit||0)/totalCap*100,'bg-bt-verde')}
+          </div>
+          <div>
+            <div class="flex justify-between text-body-md mb-1"><span>Pularam</span>
+              <span class="font-bold text-bt-warn">${n(cap.capture_skip||0)} · ${pct(cap.capture_skip||0,totalCap)}</span></div>
+            ${barra((cap.capture_skip||0)/totalCap*100,'bg-bt-warn')}
+          </div>
+          <p class="text-label-sm text-bt-muted pt-2 border-t border-bt-border">
+            A tela de contato fica entre a última pergunta e o resultado. Aqui se vê o preço real
+            de pedi-lo: quanta gente entrega, quanta pula — e, no funil acima, quanta some ali.
+          </p>
+        </div>` : vazio('Ninguém chegou na tela de contato ainda'))}
+
+      ${painel('Onde a visita parou dentro da oferta', d.abandono.length ? `
+        <table class="w-full text-body-md">
+          <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+            <th class="text-left py-2">Último bloco visto</th><th class="text-right">Sessões</th></tr></thead>
+          <tbody>${d.abandono.map(x=>`
+            <tr class="border-b border-bt-border/50">
+              <td class="py-2">${esc(secLabel(x.section))}</td>
+              <td class="text-right text-bt-warn">${n(x.sessoes)}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+        <p class="text-label-sm text-bt-muted mt-3">Só sessões que viram o resultado e <strong>não</strong> foram ao checkout.</p>`
+        : vazio('Sem abandono registrado'))}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+      ${painel('Quantos chegam em cada bloco da oferta', secOrdenadas.length ? `
+        <div class="space-y-2">
+          ${secOrdenadas.map(s=>`
+            <div>
+              <div class="flex justify-between text-label-md mb-1">
+                <span>${esc(secLabel(s.section))}</span><span class="text-bt-muted">${n(s.sessoes)}</span>
+              </div>
+              ${barra(Number(s.sessoes)/maxSec*100)}
+            </div>`).join('')}
+        </div>
+        <p class="text-label-sm text-bt-muted mt-3">Na ordem em que os blocos aparecem na página.</p>`
+        : vazio('Sem leitura de bloco ainda'))}
+
+      ${painel('Qual botão trabalha de verdade', d.ctas.length ? `
+        <table class="w-full text-body-md">
+          <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+            <th class="text-left py-2">Bloco</th><th class="text-left">Botão</th>
+            <th class="text-right">Cliques</th><th class="text-right">Sessões</th></tr></thead>
+          <tbody>${d.ctas.map(x=>`
+            <tr class="border-b border-bt-border/50">
+              <td class="py-2 text-bt-muted">${esc(secLabel(x.section))}</td>
+              <td class="truncate max-w-[240px]">${esc(x.label)}</td>
+              <td class="text-right font-bold text-bt-ouro">${n(x.cliques)}</td>
+              <td class="text-right text-bt-muted">${n(x.sessoes)}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+        <p class="text-label-sm text-bt-muted mt-3">
+          São dois botões idênticos: um logo abaixo do preço, outro depois do FAQ. Se o de baixo
+          ganhar, é sinal de que a garantia e as perguntas é que fecham a venda.
+        </p>` : vazio('Nenhum clique em botão ainda'))}
+    </div>`;
+  }
+
+  // ══ TELA: MAPA DE CALOR ═════════════════════════════════════════════════
+  async function telaCalor(){
+    hmData = await api('/api/admin-heatmap', { device:hmDevice, band:hmBand, section:hmSection, cols:60, rows:220 });
+    const d=hmData;
+    const larguras={mobile:390, tablet:820, desktop:1280};
+    const totalMortos = d.mortos.reduce((a,x)=>a+Number(x.cliques),0);
+
+    setTimeout(montarMapa, 60);
+
+    return `
+    <div class="bg-bt-ouro/10 border border-bt-ouro/25 rounded-xl px-4 py-3 mb-3 text-body-md text-bt-ouro-claro">
+      Este mapa é <strong>só da última página do quiz</strong> — a tela de resultado com a oferta.
+      As perguntas não entram aqui de propósito: elas trocam de conteúdo na mesma URL, então a mesma
+      coordenada significaria uma coisa diferente a cada tela. O que acontece durante o quiz está em
+      <em>Funil</em> e <em>Perguntas</em>.
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <span class="text-label-md text-bt-muted">Aparelho:</span>
+      ${['mobile','tablet','desktop'].map(dv=>`
+        <button data-dv="${dv}" class="px-3 py-1.5 rounded-lg text-label-md border capitalize transition-colors ${
+          hmDevice===dv?'bg-bt-ouro text-bt-bg border-bt-ouro font-bold':'border-bt-border text-bt-muted hover:text-bt-text'
+        }">${dv}</button>`).join('')}
+      <span class="text-label-md text-bt-muted ml-2">Faixa:</span>
+      <select id="hmBand" class="bg-bt-surface border border-bt-border rounded-lg px-3 py-1.5 text-label-md text-bt-text">
+        ${Object.keys(FAIXAS).map(k=>`<option value="${k}" ${String(hmBand)===k?'selected':''}>${FAIXAS[k].nota} · ${FAIXAS[k].nome}</option>`).join('')}
+      </select>
+      <select id="hmSec" class="bg-bt-surface border border-bt-border rounded-lg px-3 py-1.5 text-label-md text-bt-text">
+        <option value="">Página inteira</option>
+        ${ORDEM_SECOES.map(k=>`<option value="${k}" ${hmSection===k?'selected':''}>${SECOES[k]}</option>`).join('')}
+      </select>
+      <span class="text-label-md text-bt-muted ml-auto">${n(d.grade.total)} cliques · pico ${n(d.grade.pico)} numa célula</span>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[auto,1fr] gap-3">
+      <div class="bg-bt-surface border border-bt-border rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2 gap-3">
+          <h3 class="font-playfair text-headline-lg">A tela de resultado, com o calor por cima</h3>
+          <div class="flex items-center gap-1 text-label-sm text-bt-muted flex-shrink-0">
+            frio
+            <span class="inline-block w-16 h-2 rounded-full" style="background:linear-gradient(90deg,#3b82f6,#22d3ee,#a3e635,#fbbf24,#ef4444)"></span>
+            quente
+          </div>
+        </div>
+        <div class="hm-shell" id="hmShell">
+          <div id="hmStage">
+            <iframe id="hmFrame" src="/Quiz/?hm=1&band=${hmBand}" width="${larguras[hmDevice]}" height="900" scrolling="no" title="Tela de resultado do quiz"></iframe>
+            <canvas id="hmCanvas"></canvas>
+          </div>
+        </div>
+        <p class="text-label-sm text-bt-muted mt-2">
+          A página real, em ${larguras[hmDevice]}px, aberta no modo <code>?hm=1</code> — que pula direto
+          pro resultado com uma nota da faixa escolhida. Cada mancha é onde os dedos encostaram.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        ${painel('Até onde a oferta é lida', d.rolagem.length ? `
+          <div class="space-y-1.5">
+            ${d.rolagem.map(r=>`
+              <div class="flex items-center gap-2">
+                <span class="text-label-md text-bt-muted w-10 text-right">${r.ate}%</span>
+                <div class="flex-1">${barra(Number(r.pct), Number(r.pct)<25?'bg-bt-danger':Number(r.pct)<50?'bg-bt-warn':'bg-bt-verde')}</div>
+                <span class="text-label-md w-14 text-right">${r.pct}%</span>
+              </div>`).join('')}
+          </div>
+          <p class="text-label-sm text-bt-muted mt-3">
+            Só sessões que chegaram no resultado — as outras nunca tiveram o que rolar.
+            Onde a barra despenca é onde a oferta perde o leitor.
+          </p>` : vazio('Sem dados de rolagem'))}
+
+        ${painel(`Cliques mortos${totalMortos?' · '+n(totalMortos):''}`, d.mortos.length ? `
+          <table class="w-full text-body-md">
+            <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+              <th class="text-left py-2">Bloco</th><th class="text-left">O que clicaram</th><th class="text-right">Vezes</th></tr></thead>
+            <tbody>${d.mortos.map(x=>`
+              <tr class="border-b border-bt-border/50">
+                <td class="py-2 text-bt-muted">${esc(secLabel(x.section))}</td>
+                <td class="truncate max-w-[220px]">${esc(x.label)}</td>
+                <td class="text-right text-bt-warn font-bold">${n(x.cliques)}</td>
+              </tr>`).join('')}</tbody>
+          </table>
+          <p class="text-label-sm text-bt-muted mt-3">
+            Gente clicando em coisa que não é clicável. Cada linha aqui é um texto ou selo que
+            <em>parece</em> botão — vale transformar em link para o checkout.
+          </p>` : vazio('Nenhum clique morto — a página está sendo lida como foi desenhada'))}
+
+        ${painel('Cliques por bloco', d.porSecao.length ? `
+          <table class="w-full text-body-md">
+            <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+              <th class="text-left py-2">Bloco</th><th class="text-right">Cliques</th>
+              <th class="text-right">No botão</th><th class="text-right">Mortos</th></tr></thead>
+            <tbody>${d.porSecao.map(x=>`
+              <tr class="border-b border-bt-border/50">
+                <td class="py-2">${esc(secLabel(x.section))}</td>
+                <td class="text-right font-bold">${n(x.cliques)}</td>
+                <td class="text-right text-bt-verde">${n(x.cta)}</td>
+                <td class="text-right text-bt-warn">${n(x.mortos)}</td>
+              </tr>`).join('')}</tbody>
+          </table>` : vazio('Sem cliques no período'))}
+
+        ${painel('Mais clicados', d.elementos.length ? `
+          <table class="w-full text-body-md">
+            <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+              <th class="text-left py-2">Elemento</th><th class="text-left">Bloco</th><th class="text-right">Cliques</th></tr></thead>
+            <tbody>${d.elementos.slice(0,15).map(x=>`
+              <tr class="border-b border-bt-border/50">
+                <td class="py-2 truncate max-w-[220px]">${x.is_cta?'<span class="text-bt-verde mr-1">●</span>':''}${esc(x.label)}</td>
+                <td class="text-bt-muted">${esc(secLabel(x.section))}</td>
+                <td class="text-right font-bold">${n(x.cliques)}</td>
+              </tr>`).join('')}</tbody>
+          </table>` : vazio('Sem cliques no período'))}
+      </div>
+    </div>`;
+  }
+
+  // Desenha o mapa: primeiro em tons de cinza (alpha acumulado), depois troca
+  // cada pixel pela cor da rampa. É como toda biblioteca de heatmap funciona —
+  // só que sem carregar biblioteca nenhuma.
+  function montarMapa(){
+    const frame=$('hmFrame'), canvas=$('hmCanvas'), stage=$('hmStage'), shell=$('hmShell');
+    if(!frame||!canvas||!hmData) return;
+
+    function pintar(){
+      let alturaDoc = 900;
+      try {
+        const doc = frame.contentDocument;
+        if(doc){
+          // O <body> do quiz é min-height:100vh, e "vh" dentro do iframe é a
+          // altura do PRÓPRIO iframe. Medir sem encolher antes devolveria a
+          // altura que já está lá, não a do conteúdo — e o mapa esticaria.
+          frame.style.height = '100px';
+          alturaDoc = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+        }
+      } catch(_) { /* se der cross-origin, fica na altura padrão */ }
+
+      const largura = frame.width ? Number(frame.width) : frame.offsetWidth;
+      frame.height = alturaDoc;
+      frame.style.height = alturaDoc+'px';
+      stage.style.width = largura+'px';
+      stage.style.height = alturaDoc+'px';
+      canvas.width = largura; canvas.height = alturaDoc;
+
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,largura,alturaDoc);
+
+      const g = hmData.grade;
+      if(!g.celulas.length) return;
+      const raio = Math.max(18, Math.round(largura/16));
+
+      // 1. intensidade em alpha
+      g.celulas.forEach(c=>{
+        const x = (Number(c.gx)+0.5)/g.cols*largura;
+        const y = (Number(c.gy)+0.5)/g.rows*alturaDoc;
+        const forca = Math.min(1, Number(c.n)/(g.pico||1));
+        const grad = ctx.createRadialGradient(x,y,0,x,y,raio);
+        grad.addColorStop(0,'rgba(0,0,0,'+(0.12+forca*0.55)+')');
+        grad.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath(); ctx.arc(x,y,raio,0,Math.PI*2); ctx.fill();
+      });
+
+      // 2. alpha → rampa de cor (azul → ciano → verde → âmbar → vermelho)
+      const img = ctx.getImageData(0,0,largura,alturaDoc);
+      const px = img.data;
+      for(let i=0;i<px.length;i+=4){
+        const a = px[i+3];
+        if(!a) continue;
+        const t = a/255;
+        let r,gg,b;
+        if(t<0.25){      r=59;  gg=130; b=246; }
+        else if(t<0.45){ r=34;  gg=211; b=238; }
+        else if(t<0.65){ r=163; gg=230; b=53;  }
+        else if(t<0.82){ r=251; gg=191; b=36;  }
+        else {           r=239; gg=68;  b=68;  }
+        px[i]=r; px[i+1]=gg; px[i+2]=b;
+        px[i+3]=Math.min(235, a+40);
+      }
+      ctx.putImageData(img,0,0);
+
+      // 3. encaixa na largura disponível
+      const disp = shell.clientWidth - 8;
+      const escala = Math.min(1, disp/largura);
+      stage.style.transform = 'scale('+escala+')';
+      shell.style.height = Math.min(alturaDoc*escala + 8, window.innerHeight-250)+'px';
+    }
+
+    if(frame.contentDocument && frame.contentDocument.readyState==='complete') pintar();
+    frame.onload = () => setTimeout(pintar, 350);  // fontes/imagens mudam a altura
+  }
+
+  // ══ TELA: PERGUNTAS ═════════════════════════════════════════════════════
+  async function telaPerguntas(){
+    const d = await api('/api/admin-quiz');
+    const maxNota = Math.max(1, ...d.notas.map(x=>Number(x.sessoes)));
+    const maxAband = Math.max(1, ...d.abandono.map(x=>Number(x.sessoes)));
+    // A pergunta que mais derruba gente — é o gancho mais forte pra criativo.
+    let campea=null;
+    d.perguntas.forEach(p=>{
+      const taxa = Number(p.respostas)? Number(p.erros)/Number(p.respostas) : 0;
+      if(!campea || taxa>campea.taxa) campea={...p, taxa};
+    });
+
+    return `
+    ${campea ? `<div class="bg-bt-surface border border-bt-ouro/30 rounded-xl p-4 mb-3">
+      <p class="text-label-md text-bt-muted mb-1">O mito que mais pega gente</p>
+      <p class="font-playfair text-headline-xl text-bt-ouro-claro">${esc(qLabel(campea.section))}</p>
+      <p class="text-body-md text-bt-muted mt-1">
+        ${(campea.taxa*100).toFixed(1)}% erram — ${n(campea.erros)} de ${n(campea.respostas)} respostas.
+        É o argumento mais afiado que este quiz já provou ter.
+      </p>
+    </div>` : ''}
+
+    ${painel('Acerto e erro, pergunta por pergunta', d.perguntas.length ? `
+      <div class="space-y-3">
+        ${d.perguntas.map(p=>{
+          const total=Number(p.respostas)||1, erroPct=Number(p.erros)/total*100;
+          return `
+          <div>
+            <div class="flex justify-between items-baseline text-body-md mb-1">
+              <span>${esc(qLabel(p.section))}</span>
+              <span class="text-label-md"><span class="text-bt-danger font-bold">${erroPct.toFixed(0)}% erram</span>
+                <span class="text-bt-muted"> · ${n(p.respostas)} respostas</span></span>
+            </div>
+            ${barra(erroPct, erroPct>70?'bg-bt-danger':erroPct>40?'bg-bt-warn':'bg-bt-verde')}
+          </div>`;
+        }).join('')}
+      </div>
+      <p class="text-label-sm text-bt-muted mt-4 pt-3 border-t border-bt-border">
+        Barra cheia = quase todo mundo cai no mito. Essas são as perguntas que fazem o quiz funcionar:
+        criam a lacuna que a oferta promete fechar. As de barra curta são candidatas a serem trocadas.
+      </p>` : vazio('Ninguém respondeu nada ainda'))}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+      ${painel('Onde largam o quiz', d.abandono.length ? `
+        <div class="space-y-2">
+          ${d.abandono.map(x=>`
+            <div>
+              <div class="flex justify-between text-label-md mb-1">
+                <span>${Number(x.max_q)===0?'Abriu e não respondeu nada':'Parou depois da '+x.max_q+'ª'}</span>
+                <span class="text-bt-muted">${n(x.sessoes)}</span>
+              </div>
+              ${barra(Number(x.sessoes)/maxAband*100,'bg-bt-warn')}
+            </div>`).join('')}
+        </div>
+        <p class="text-label-sm text-bt-muted mt-3">
+          Só quem não chegou às 10. Um pico no meio costuma ser pergunta longa ou confusa demais.
+        </p>` : vazio('Todo mundo terminou — ou ninguém começou'))}
+
+      ${painel('Notas e o que cada uma faz depois', d.notas.length ? `
+        <table class="w-full text-body-md">
+          <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+            <th class="text-left py-2">Nota</th><th class="text-right">Pessoas</th>
+            <th class="text-right">Clicaram</th><th class="text-right">Checkout</th></tr></thead>
+          <tbody>${d.notas.map(x=>`
+            <tr class="border-b border-bt-border/50">
+              <td class="py-2">${x.score}/10</td>
+              <td class="text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <div class="w-16">${barra(Number(x.sessoes)/maxNota*100)}</div>${n(x.sessoes)}
+                </div>
+              </td>
+              <td class="text-right text-bt-ouro">${n(x.ctas)}</td>
+              <td class="text-right text-bt-verde">${n(x.checkouts)}</td>
+            </tr>`).join('')}</tbody>
+        </table>` : vazio('Ninguém terminou o quiz ainda'))}
+    </div>
+
+    ${painel('Por faixa de resultado', d.faixas.length ? `
+      <table class="w-full text-body-md">
+        <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+          <th class="text-left py-2">Faixa</th><th class="text-left">Diagnóstico que ela vê</th>
+          <th class="text-right">Pessoas</th><th class="text-right">Rolagem</th>
+          <th class="text-right">Clicaram</th><th class="text-right">Checkout</th></tr></thead>
+        <tbody>${d.faixas.map(x=>{
+          const f=FAIXAS[x.band]||{nota:x.band,nome:'—'};
+          return `<tr class="border-b border-bt-border/50">
+            <td class="py-2 font-bold">${f.nota}</td>
+            <td class="text-bt-muted">${esc(f.nome)}</td>
+            <td class="text-right">${n(x.sessoes)}</td>
+            <td class="text-right text-bt-muted">${x.scroll_medio}%</td>
+            <td class="text-right text-bt-ouro">${n(x.ctas)}</td>
+            <td class="text-right text-bt-verde">${n(x.checkouts)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+      <p class="text-label-sm text-bt-muted mt-3">
+        A aposta do funil é que nota baixa converte melhor — o quiz existe pra abrir a lacuna.
+        Esta tabela confirma ou derruba isso. Cada faixa também tem seu próprio Mapa de Calor.
+      </p>` : vazio('Sem resultados no período'), 'mt-3')}`;
+  }
+
+  // ══ TELA: SESSÕES ═══════════════════════════════════════════════════════
+  async function telaSessoes(){
+    const d = await api('/api/admin-sessions', { filtro:sessFiltro, limit:60 });
+    const FILTROS=[
+      {k:'all',      l:'Todas'},
+      {k:'checkout', l:'Foram ao checkout'},
+      {k:'cta',      l:'Clicaram e não foram'},
+      {k:'oferta',   l:'Viram a oferta e não clicaram'},
+      {k:'largou',   l:'Largaram o quiz no meio'},
+      {k:'na-cara',  l:'Saíram sem responder nada'},
+      {k:'contato',  l:'Deixaram contato'},
+    ];
+    setTimeout(()=>{
+      document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ sessFiltro=b.dataset.f; render(); });
+      document.querySelectorAll('[data-sess]').forEach(b=>b.onclick=()=>abrirJornada(b.dataset.sess));
+    },0);
+
+    return `
+    <div class="flex flex-wrap gap-2 mb-3">
+      ${FILTROS.map(f=>`<button data-f="${f.k}" class="px-3 py-1.5 rounded-lg text-label-md border transition-colors ${
+        sessFiltro===f.k?'bg-bt-ouro text-bt-bg border-bt-ouro font-bold':'border-bt-border text-bt-muted hover:text-bt-text'
+      }">${f.l}</button>`).join('')}
+    </div>
+    ${painel(n(d.total)+' sessões', d.sessoes.length ? `
+      <div class="overflow-x-auto">
+      <table class="w-full text-body-md whitespace-nowrap">
+        <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+          <th class="text-left py-2">Quando</th><th class="text-left">Aparelho</th><th class="text-left">Origem</th>
+          <th class="text-right">Foi até</th><th class="text-right">Nota</th>
+          <th class="text-right">Rolou</th><th class="text-right">Tempo</th>
+          <th class="text-left">Parou em</th><th class="text-center">Estado</th><th></th></tr></thead>
+        <tbody>${d.sessoes.map(s=>`
+          <tr class="border-b border-bt-border/50 hover:bg-bt-surface3">
+            <td class="py-2 text-bt-muted">${fmtDT(s.first_ts)}</td>
+            <td class="capitalize">${esc(s.device||'—')}</td>
+            <td class="text-bt-muted truncate max-w-[110px]">${esc(s.utm_source||'direto')}</td>
+            <td class="text-right">${s.max_q}/10</td>
+            <td class="text-right">${s.score==null?'—':s.score+'/10'}</td>
+            <td class="text-right text-bt-muted">${s.reached_result?s.max_scroll+'%':'—'}</td>
+            <td class="text-right text-bt-muted">${fmtDur(s.duration_sec)}</td>
+            <td class="truncate max-w-[130px]">${s.reached_result?esc(secLabel(s.last_section)):'—'}</td>
+            <td class="text-center">${
+              s.reached_checkout?'<span class="text-bt-verde font-bold">checkout</span>'
+              : s.cta_clicks>0?'<span class="text-bt-ouro">clicou</span>'
+              : s.reached_result?'<span class="text-bt-ouro-claro">viu a oferta</span>'
+              : s.max_q>0?'<span class="text-bt-muted">largou no meio</span>'
+              : '<span class="text-bt-muted opacity-60">só abriu</span>'}</td>
+            <td><button data-sess="${esc(s.session_id)}" class="text-bt-ouro hover:underline text-label-md">ver jornada</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>` : vazio('Nenhuma sessão com esse filtro'))}`;
+  }
+
+  async function abrirJornada(id){
+    const dr=$('drawer'), ov=$('drawerOv');
+    dr.innerHTML = loading();
+    dr.classList.remove('translate-x-full');
+    ov.classList.remove('opacity-0','pointer-events-none');
+    ov.onclick = fecharDrawer;
+    try{
+      const d = await api('/api/admin-sessions',{ id });
+      const s=d.sessao;
+      const f=FAIXAS[s.band];
+      dr.innerHTML = `
+        <div class="p-5 border-b border-bt-border flex justify-between items-start">
+          <div>
+            <h3 class="font-playfair text-headline-lg">Jornada da visita</h3>
+            <p class="text-label-sm text-bt-muted font-mono mt-0.5">${esc(s.session_id)}</p>
+          </div>
+          <button id="drClose" class="text-bt-muted hover:text-bt-danger"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="p-5 space-y-4">
+          <div class="grid grid-cols-2 gap-2 text-body-md">
+            <div><span class="text-bt-muted text-label-md block">Aparelho</span>${esc(s.device||'—')} · ${s.vw||'?'}px</div>
+            <div><span class="text-bt-muted text-label-md block">País</span>${esc(s.country||'—')}</div>
+            <div><span class="text-bt-muted text-label-md block">Respondeu</span>${s.max_q}/10</div>
+            <div><span class="text-bt-muted text-label-md block">Nota</span>${s.score==null?'não terminou':s.score+'/10'}</div>
+            <div><span class="text-bt-muted text-label-md block">Rolou na oferta</span>${s.reached_result?s.max_scroll+'%':'não chegou lá'}</div>
+            <div><span class="text-bt-muted text-label-md block">Tempo ativo</span>${fmtDur(s.duration_sec)}</div>
+            ${f?`<div class="col-span-2"><span class="text-bt-muted text-label-md block">Faixa vista</span>${f.nota} · ${esc(f.nome)}</div>`:''}
+            <div class="col-span-2"><span class="text-bt-muted text-label-md block">Origem</span>
+              ${esc(s.utm_source||'direto')}${s.utm_campaign?' · '+esc(s.utm_campaign):''}</div>
+            ${s.referrer?`<div class="col-span-2"><span class="text-bt-muted text-label-md block">Veio de</span>
+              <span class="break-all text-label-md">${esc(s.referrer)}</span></div>`:''}
+          </div>
+          ${s.reached_checkout?`<div class="bg-bt-verde/10 border border-bt-verde/30 rounded-lg p-3 text-body-md">
+            <strong class="text-bt-verde">Foi pro checkout.</strong> A venda em si acontece no gateway, fora daqui.</div>`:''}
+          ${s.contact?`<div class="bg-bt-ouro/10 border border-bt-ouro/30 rounded-lg p-3 text-body-md text-bt-ouro-claro">
+            Deixou e-mail/WhatsApp na tela de contato.</div>`:''}
+          <div>
+            <h4 class="font-playfair text-headline-lg mb-2">Linha do tempo</h4>
+            ${d.eventos.length?`<div class="space-y-2">${d.eventos.map(e=>`
+              <div class="flex gap-3 text-body-md">
+                <span class="text-label-sm text-bt-muted w-14 flex-shrink-0 pt-0.5">${new Date(e.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</span>
+                <div class="flex-1 border-l border-bt-border pl-3 pb-1">
+                  <span class="${['cta_click','checkout_click'].includes(e.event_name)?'text-bt-ouro font-bold':e.event_name==='rage_click'?'text-bt-danger font-bold':''}">${esc(e.event_name)}</span>
+                  ${e.section?`<span class="text-bt-muted"> · ${esc(/^q\d+$/.test(e.section)?qLabel(e.section):secLabel(e.section))}</span>`:''}
+                  ${e.label?`<p class="text-label-sm text-bt-muted truncate">${esc(e.label)}</p>`:''}
+                </div>
+              </div>`).join('')}</div>`:vazio('Sem eventos')}
+          </div>
+        </div>`;
+      $('drClose').onclick = fecharDrawer;
+    }catch(e){ dr.innerHTML = `<div class="p-5">${erro(e.message)}</div>`; }
+  }
+  function fecharDrawer(){
+    $('drawer').classList.add('translate-x-full');
+    $('drawerOv').classList.add('opacity-0','pointer-events-none');
+  }
+
+  // ══ TELA: EVENTOS ═══════════════════════════════════════════════════════
+  async function telaEventos(){
+    const d = await api('/api/admin-events', { limit:150 });
+    return `
+    ${painel('Chegando por tipo', d.porTipo.length ? `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        ${d.porTipo.map(t=>`
+          <div class="bg-bt-surface3 rounded-lg p-3 border border-bt-border">
+            <p class="text-label-md text-bt-muted truncate">${esc(t.event_name)}</p>
+            <p class="text-headline-lg">${n(t.n)}</p>
+            <p class="text-label-sm text-bt-muted">${n(t.sessoes)} sessões · ${fmtDT(t.ultimo)}</p>
+          </div>`).join('')}
+      </div>` : `${vazio('Nenhum evento chegou ainda')}
+      <div class="bg-bt-warn/10 border border-bt-warn/30 rounded-lg p-4 text-body-md text-bt-warn">
+        <strong>Se está zerado:</strong> confira se <code>/js/track.js</code> carrega em <code>/Quiz/</code>,
+        se <code>POSTGRES_URL</code> está nas variáveis da Vercel, e se você não está com
+        <code>?notrack=1</code> ou <code>bt_notrack</code> ligado no próprio navegador.
+      </div>`)}
+
+    ${painel('Log cru · '+n(d.total)+' eventos', d.eventos.length ? `
+      <div class="overflow-x-auto">
+      <table class="w-full text-body-md whitespace-nowrap">
+        <thead><tr class="text-bt-muted text-label-md border-b border-bt-border">
+          <th class="text-left py-2">Quando</th><th class="text-left">Evento</th><th class="text-left">Onde</th>
+          <th class="text-left">Rótulo</th><th class="text-left">Aparelho</th><th class="text-left">Sessão</th></tr></thead>
+        <tbody>${d.eventos.map(e=>`
+          <tr class="border-b border-bt-border/50">
+            <td class="py-2 text-bt-muted">${fmtDT(e.ts)}</td>
+            <td class="${e.event_name==='rage_click'?'text-bt-danger':e.event_name.includes('click')?'text-bt-ouro':''}">${esc(e.event_name)}</td>
+            <td class="text-bt-muted">${esc(e.section?(/^q\d+$/.test(e.section)?qLabel(e.section):secLabel(e.section)):'—')}</td>
+            <td class="truncate max-w-[200px]">${esc(e.label||'—')}</td>
+            <td class="text-bt-muted capitalize">${esc(e.device||'—')}</td>
+            <td class="font-mono text-label-sm text-bt-muted">${esc(String(e.session_id).slice(0,12))}…</td>
+          </tr>`).join('')}</tbody>
+      </table></div>` : '', 'mt-3')}`;
+  }
+
+  // ── Roteador ─────────────────────────────────────────────────────────────
+  async function render(){
+    $('content').innerHTML = loading();
+    try{
+      let html='';
+      if(screen==='visao')          html = await telaVisao();
+      else if(screen==='funil')     html = await telaFunil();
+      else if(screen==='calor')     html = await telaCalor();
+      else if(screen==='perguntas') html = await telaPerguntas();
+      else if(screen==='sessoes')   html = await telaSessoes();
+      else if(screen==='eventos')   html = await telaEventos();
+      $('content').innerHTML = html;
+
+      if(screen==='calor'){
+        document.querySelectorAll('[data-dv]').forEach(b=>b.onclick=()=>{ hmDevice=b.dataset.dv; render(); });
+        const sel=$('hmSec');  if(sel)  sel.onchange =()=>{ hmSection=sel.value; render(); };
+        const selB=$('hmBand');if(selB) selB.onchange=()=>{ hmBand=Number(selB.value); render(); };
+      }
+    }catch(e){
+      $('content').innerHTML = erro(e.message);
+    }
+  }
+
+  // ── Login ────────────────────────────────────────────────────────────────
+  $('loginForm').onsubmit = async (ev)=>{
+    ev.preventDefault();
+    const btn=$('loginBtn'); btn.disabled=true; $('authError').textContent='';
+    try{
+      const r = await fetch('/api/admin-login',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ senha:$('p').value })
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.error||'Falha no login');
+      saveToken(d.token);
+      entrar();
+    }catch(e){ $('authError').textContent = e.message; }
+    finally{ btn.disabled=false; }
+  };
+  $('logoutBtn').onclick = logout;
+
+  function entrar(){
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    renderNav(); aplicaQuick(quick);
+  }
+
+  const tk = loadToken();
+  if(tk){ token=tk; entrar(); }
+})();
+</script>
+</body>
+</html>
