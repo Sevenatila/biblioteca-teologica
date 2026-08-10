@@ -418,17 +418,28 @@
     padding:18px;
     margin-top:28px;
   }
+  /* Selo desenhado em SVG, não imagem: pesa ~1KB, fica nítido em qualquer
+     tela e não depende de requisição — a garantia é o último argumento antes
+     do botão, não pode aparecer depois do resto. */
   .g-seal{
-    min-width:52px;height:52px;
-    border:2px solid var(--ouro);
-    border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
+    width:92px;height:92px;
+    flex-shrink:0;
+    display:block;
+  }
+  .g-seal .seal-line{fill:none;stroke:var(--ouro)}
+  .g-seal text{
     font-family:'Playfair Display',serif;
-    font-weight:800;
-    color:var(--ouro-claro);
-    font-size:15px;
-    line-height:1.05;
-    text-align:center;
+    fill:var(--ouro-claro);
+    text-anchor:middle;
+  }
+  .g-seal .seal-num{font-size:38px;font-weight:800;fill:var(--ouro-claro)}
+  .g-seal .seal-dias{font-size:12.5px;font-weight:700;letter-spacing:.24em;fill:var(--ouro)}
+  /* 7.8px + 0.05em ocupa ~4/5 do arco: o texto fica na parte alta da curva,
+     sem escorrer pras laterais onde as letras saem quase deitadas. */
+  .g-seal .seal-arco{font-size:7.4px;font-weight:700;letter-spacing:.05em;fill:var(--ouro)}
+  @media (max-width:400px){
+    .guarantee{gap:12px;padding:16px 14px}
+    .g-seal{width:76px;height:76px}
   }
   .guarantee h4{
     font-family:'Playfair Display',serif;
@@ -764,10 +775,30 @@ function renderResult(){
             <p class="note">Menos que um lanche — para nunca mais repetir um mito achando que é Bíblia.</p>
             </div>
             <div class="guarantee" data-sec="garantia">
-              <div class="g-seal">7<br>dias</div>
+              <svg class="g-seal" viewBox="0 0 128 128" role="img" aria-label="Selo de garantia incondicional de 90 dias">
+                <defs>
+                  <!-- Dois semicírculos de mesmo raio, percorridos os dois da
+                       esquerda pra direita: o de cima (sweep 1) passa por cima,
+                       o de baixo (sweep 0) por baixo. É a direção do traçado —
+                       não a posição — que decide se a letra sai de pé; por isso
+                       o texto do rodapé fica legível em vez de de cabeça pra
+                       baixo. Cada arco mede ~137px: o que for escrito neles
+                       precisa caber nisso, senão o navegador corta a sobra. -->
+                  <path id="seloCima"  d="M21.5 64 A43.5 43.5 0 0 1 106.5 64" fill="none"/>
+                  <path id="seloBaixo" d="M16.5 64 A47.5 47.5 0 0 0 111.5 64" fill="none"/>
+                </defs>
+                <path class="seal-line" stroke-width="2" stroke-linejoin="round"
+                  d="M64.0 2.0 L68.0 7.6 L72.8 2.6 L76.0 8.8 L81.5 4.5 L83.7 11.1 L89.8 7.6 L91.1 14.4 L97.5 11.8 L97.9 18.8 L104.6 17.1 L104.0 24.0 L110.9 23.4 L109.2 30.1 L116.2 30.5 L113.6 36.9 L120.4 38.2 L116.9 44.3 L123.5 46.5 L119.2 52.0 L125.4 55.2 L120.4 60.0 L126.0 64.0 L120.4 68.0 L125.4 72.8 L119.2 76.0 L123.5 81.5 L116.9 83.7 L120.4 89.8 L113.6 91.1 L116.2 97.5 L109.2 97.9 L110.9 104.6 L104.0 104.0 L104.6 110.9 L97.9 109.2 L97.5 116.2 L91.1 113.6 L89.8 120.4 L83.7 116.9 L81.5 123.5 L76.0 119.2 L72.8 125.4 L68.0 120.4 L64.0 126.0 L60.0 120.4 L55.2 125.4 L52.0 119.2 L46.5 123.5 L44.3 116.9 L38.2 120.4 L36.9 113.6 L30.5 116.2 L30.1 109.2 L23.4 110.9 L24.0 104.0 L17.1 104.6 L18.8 97.9 L11.8 97.5 L14.4 91.1 L7.6 89.8 L11.1 83.7 L4.5 81.5 L8.8 76.0 L2.6 72.8 L7.6 68.0 L2.0 64.0 L7.6 60.0 L2.6 55.2 L8.8 52.0 L4.5 46.5 L11.1 44.3 L7.6 38.2 L14.4 36.9 L11.8 30.5 L18.8 30.1 L17.1 23.4 L24.0 24.0 L23.4 17.1 L30.1 18.8 L30.5 11.8 L36.9 14.4 L38.2 7.6 L44.3 11.1 L46.5 4.5 L52.0 8.8 L55.2 2.6 L60.0 7.6Z"/>
+                <circle class="seal-line" cx="64" cy="64" r="53" stroke-width="1.4"/>
+                <circle class="seal-line" cx="64" cy="64" r="49.5" stroke-width="0.7" opacity=".7"/>
+                <text class="seal-arco"><textPath href="#seloCima" xlink:href="#seloCima" startOffset="50%">SATISFAÇÃO GARANTIDA</textPath></text>
+                <text class="seal-num" x="64" y="74">90</text>
+                <text class="seal-dias" x="64" y="88" dx="1.5">DIAS</text>
+                <text class="seal-arco"><textPath href="#seloBaixo" xlink:href="#seloBaixo" startOffset="50%">100% DE VOLTA</textPath></text>
+              </svg>
               <div>
-                <h4>Garantia incondicional de 7 dias</h4>
-                <p>Acesse o acervo completo. Se em até 7 dias você achar que não valeu, devolvemos 100% do valor. Sem perguntas, sem burocracia.</p>
+                <h4>Garantia incondicional de 90 dias</h4>
+                <p>Acesse o acervo completo. Se em até 90 dias você achar que não valeu, devolvemos 100% do valor. Sem perguntas, sem burocracia.</p>
               </div>
             </div>
             <div class="faq" data-sec="faq">
